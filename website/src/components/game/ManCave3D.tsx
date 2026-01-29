@@ -376,11 +376,11 @@ const SHED_SPIDERWEBS = [
 ];
 
 const SHED_COCKROACHES = [
-  { id: 'roach-1', position: [-2, 0, 1] as [number, number, number] },
+  { id: 'roach-1', position: [1, 0, 2] as [number, number, number] },  // Moved away from mower
   { id: 'roach-2', position: [1, 0, -2] as [number, number, number] },
-  { id: 'roach-3', position: [2, 0, 2] as [number, number, number] },
-  { id: 'roach-4', position: [-1, 0, -1] as [number, number, number] },
-  { id: 'roach-5', position: [0, 0, 1.5] as [number, number, number] },
+  { id: 'roach-3', position: [2.5, 0, 0] as [number, number, number] },
+  { id: 'roach-4', position: [-1, 0, -1.5] as [number, number, number] },
+  { id: 'roach-5', position: [-3, 0, 2] as [number, number, number] },
 ];
 
 // GARAGE - Oil spills and Rats
@@ -2603,8 +2603,8 @@ interface Item3DBaseProps {
 }
 
 // Helper to handle click with propagation stop
-const handleItemClick = (e: THREE.Event, onClick: () => void) => {
-  e.stopPropagation();
+const handleItemClick = (e: any, onClick: () => void) => {
+  e.stopPropagation?.();
   onClick();
 };
 
@@ -2644,6 +2644,108 @@ function WorkbenchItem({ position, onClick, isSelected }: Item3DBaseProps) {
         <Html center position={[0, 2, 0]}>
           <div className={`${isSelected ? 'bg-[#4ECDC4]' : 'bg-[#CCAA4C]'} text-[#353535] px-3 py-1 text-sm font-bold uppercase whitespace-nowrap rounded shadow-lg`}>
             {isSelected ? '✓ Selected' : '🔧 Workbench'}
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
+// Hi-Lo Adjustable Bench - Inverted T-style central legs
+function HiLoBenchItem({ position, onClick, isSelected }: Item3DBaseProps) {
+  const [hovered, setHovered] = useState(false);
+  const groupRef = useRef<THREE.Group>(null);
+  const [heightOffset, setHeightOffset] = useState(0);
+  
+  useFrame(({ clock }) => {
+    if (groupRef.current && isSelected) {
+      groupRef.current.position.y = position[1] + Math.sin(Date.now() * 0.005) * 0.05;
+    }
+    // Subtle height adjustment animation when hovered
+    if (hovered) {
+      setHeightOffset(Math.sin(clock.getElapsedTime() * 2) * 0.05);
+    }
+  });
+
+  const tableHeight = 1 + heightOffset;
+
+  return (
+    <group 
+      ref={groupRef}
+      position={position}
+      onClick={(e) => handleItemClick(e, onClick)}
+      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+      onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
+    >
+      {/* Table top - slightly thicker for industrial look */}
+      <Box args={[2.5, 0.12, 1.2]} position={[0, tableHeight, 0]}>
+        <meshStandardMaterial color={isSelected ? "#4ECDC4" : hovered ? "#CCAA4C" : "#5D6D7E"} flatShading />
+      </Box>
+      
+      {/* Edge trim on table top */}
+      <Box args={[2.52, 0.03, 1.22]} position={[0, tableHeight + 0.06, 0]}>
+        <meshStandardMaterial color="#2C3E50" flatShading />
+      </Box>
+      
+      {/* === INVERTED T LEGS (2 central legs with horizontal crossbar) === */}
+      
+      {/* Left vertical leg - central position */}
+      <Box args={[0.12, tableHeight - 0.1, 0.12]} position={[-0.7, (tableHeight - 0.1) / 2, 0]}>
+        <meshStandardMaterial color="#353535" flatShading />
+      </Box>
+      
+      {/* Right vertical leg - central position */}
+      <Box args={[0.12, tableHeight - 0.1, 0.12]} position={[0.7, (tableHeight - 0.1) / 2, 0]}>
+        <meshStandardMaterial color="#353535" flatShading />
+      </Box>
+      
+      {/* Left foot - horizontal bar forming T base */}
+      <Box args={[0.12, 0.08, 0.9]} position={[-0.7, 0.04, 0]}>
+        <meshStandardMaterial color="#2C3E50" flatShading />
+      </Box>
+      
+      {/* Right foot - horizontal bar forming T base */}
+      <Box args={[0.12, 0.08, 0.9]} position={[0.7, 0.04, 0]}>
+        <meshStandardMaterial color="#2C3E50" flatShading />
+      </Box>
+      
+      {/* Floor pads on T feet */}
+      {[[-0.7, -0.4], [-0.7, 0.4], [0.7, -0.4], [0.7, 0.4]].map(([x, z], i) => (
+        <Box key={i} args={[0.15, 0.02, 0.15]} position={[x, 0.01, z]}>
+          <meshStandardMaterial color="#1a1a1a" flatShading />
+        </Box>
+      ))}
+      
+      {/* Horizontal support beam connecting the two legs */}
+      <Box args={[1.28, 0.08, 0.08]} position={[0, 0.3, 0]}>
+        <meshStandardMaterial color="#404040" flatShading />
+      </Box>
+      
+      {/* Electric motor housing (for height adjustment) */}
+      <Box args={[0.25, 0.15, 0.2]} position={[0, 0.5, 0]}>
+        <meshStandardMaterial color="#1a1a1a" flatShading />
+      </Box>
+      
+      {/* Height adjustment indicator lights */}
+      <Box args={[0.04, 0.04, 0.02]} position={[0.08, 0.55, 0.11]}>
+        <meshStandardMaterial color="#22C55E" emissive="#22C55E" emissiveIntensity={hovered ? 1 : 0.3} flatShading />
+      </Box>
+      <Box args={[0.04, 0.04, 0.02]} position={[-0.08, 0.55, 0.11]}>
+        <meshStandardMaterial color="#FF6B35" emissive="#FF6B35" emissiveIntensity={hovered ? 1 : 0.3} flatShading />
+      </Box>
+      
+      {/* Items on top of bench */}
+      <Box args={[0.3, 0.1, 0.5]} position={[-0.8, tableHeight + 0.11, 0]}>
+        <meshStandardMaterial color="#E74C3C" flatShading />
+      </Box>
+      <Box args={[0.5, 0.08, 0.3]} position={[0.6, tableHeight + 0.1, 0.2]}>
+        <meshStandardMaterial color="#CCAA4C" flatShading />
+      </Box>
+      
+      {(hovered || isSelected) && (
+        <Html center position={[0, 2, 0]}>
+          <div className={`${isSelected ? 'bg-[#4ECDC4]' : 'bg-[#5D6D7E]'} text-white px-3 py-1 text-sm font-bold uppercase whitespace-nowrap rounded shadow-lg`}>
+            {isSelected ? '✓ Selected' : '⚡ Hi-Lo Bench'}
           </div>
         </Html>
       )}
@@ -2928,17 +3030,31 @@ function DisplayCaseItem({ position, onClick, isSelected }: Item3DBaseProps) {
   );
 }
 
-// Wall-mounted neon sign
+// Wall-mounted neon sign - SUPER GLOWY!
 function NeonSignItem({ position, onClick, isSelected }: Item3DBaseProps) {
   const [hovered, setHovered] = useState(false);
-  const meshRef = useRef<THREE.Mesh>(null);
+  const [flicker, setFlicker] = useState(1);
+  const tubeRefs = useRef<THREE.Mesh[]>([]);
   
   useFrame((state) => {
-    if (meshRef.current) {
-      const material = meshRef.current.material as THREE.MeshStandardMaterial;
-      material.emissiveIntensity = 0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.2;
-    }
+    // Neon flicker effect
+    const time = state.clock.elapsedTime;
+    const flickerBase = 0.8 + Math.sin(time * 3) * 0.15 + Math.sin(time * 7) * 0.05;
+    // Occasional random flicker
+    const randomFlicker = Math.random() > 0.98 ? 0.5 : 1;
+    setFlicker(flickerBase * randomFlicker);
+    
+    tubeRefs.current.forEach((mesh, i) => {
+      if (mesh) {
+        const material = mesh.material as THREE.MeshStandardMaterial;
+        // Each tube flickers slightly differently
+        material.emissiveIntensity = (1.5 + Math.sin(time * 4 + i) * 0.3) * flicker;
+      }
+    });
   });
+
+  const neonColor = isSelected ? "#4ECDC4" : "#FF6B35";
+  const neonColor2 = "#CCAA4C";
 
   return (
     <group 
@@ -2947,18 +3063,94 @@ function NeonSignItem({ position, onClick, isSelected }: Item3DBaseProps) {
       onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
       onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
     >
-      <Box args={[2, 0.6, 0.1]} position={[0, 0, 0]}>
-        <meshStandardMaterial color="#1a1a1a" flatShading />
+      {/* Black backplate */}
+      <Box args={[2.2, 0.8, 0.08]} position={[0, 0, -0.02]}>
+        <meshStandardMaterial color="#0a0a0a" flatShading />
       </Box>
-      <Box ref={meshRef} args={[1.8, 0.15, 0.05]} position={[0, 0.1, 0.08]}>
-        <meshStandardMaterial color={isSelected ? "#4ECDC4" : "#FF6B35"} emissive={isSelected ? "#4ECDC4" : "#FF6B35"} emissiveIntensity={0.5} flatShading />
+      
+      {/* Neon tube mounting clips */}
+      {[-0.7, 0, 0.7].map((x, i) => (
+        <Box key={i} args={[0.08, 0.5, 0.06]} position={[x, 0, 0.02]}>
+          <meshStandardMaterial color="#2a2a2a" flatShading />
+        </Box>
+      ))}
+      
+      {/* Main neon tube - "MAN CAVE" shape (stylized) */}
+      <Box 
+        ref={(el: THREE.Mesh) => { if (el) tubeRefs.current[0] = el; }}
+        args={[1.8, 0.08, 0.08]} 
+        position={[0, 0.15, 0.08]}
+      >
+        <meshStandardMaterial 
+          color={neonColor} 
+          emissive={neonColor} 
+          emissiveIntensity={1.5 * flicker} 
+          toneMapped={false}
+        />
       </Box>
-      <Box args={[1.5, 0.1, 0.05]} position={[0, -0.15, 0.08]}>
-        <meshStandardMaterial color="#CCAA4C" emissive="#CCAA4C" emissiveIntensity={0.4} flatShading />
+      
+      {/* Secondary neon tube */}
+      <Box 
+        ref={(el: THREE.Mesh) => { if (el) tubeRefs.current[1] = el; }}
+        args={[1.4, 0.06, 0.06]} 
+        position={[0, -0.1, 0.08]}
+      >
+        <meshStandardMaterial 
+          color={neonColor2} 
+          emissive={neonColor2} 
+          emissiveIntensity={1.2 * flicker}
+          toneMapped={false}
+        />
       </Box>
+      
+      {/* Vertical accent tubes */}
+      <Box 
+        ref={(el: THREE.Mesh) => { if (el) tubeRefs.current[2] = el; }}
+        args={[0.05, 0.35, 0.05]} 
+        position={[-0.85, 0, 0.08]}
+      >
+        <meshStandardMaterial 
+          color={neonColor} 
+          emissive={neonColor} 
+          emissiveIntensity={1.3 * flicker}
+          toneMapped={false}
+        />
+      </Box>
+      <Box 
+        ref={(el: THREE.Mesh) => { if (el) tubeRefs.current[3] = el; }}
+        args={[0.05, 0.35, 0.05]} 
+        position={[0.85, 0, 0.08]}
+      >
+        <meshStandardMaterial 
+          color={neonColor} 
+          emissive={neonColor} 
+          emissiveIntensity={1.3 * flicker}
+          toneMapped={false}
+        />
+      </Box>
+      
+      {/* Glow halo effect (larger transparent box behind) */}
+      <Box args={[2.4, 1.0, 0.02]} position={[0, 0, 0.03]}>
+        <meshStandardMaterial 
+          color={neonColor} 
+          transparent 
+          opacity={0.15 * flicker}
+          emissive={neonColor}
+          emissiveIntensity={0.3 * flicker}
+        />
+      </Box>
+      
+      {/* Point light for actual glow on surroundings */}
+      <pointLight 
+        position={[0, 0, 0.3]} 
+        color={neonColor} 
+        intensity={2 * flicker} 
+        distance={3}
+      />
+      
       {(hovered || isSelected) && (
-        <Html center position={[0, 0.6, 0]}>
-          <div className={`${isSelected ? 'bg-[#4ECDC4]' : 'bg-[#FF6B35]'} text-white px-3 py-1 text-sm font-bold uppercase whitespace-nowrap rounded shadow-lg`}>
+        <Html center position={[0, 0.7, 0]}>
+          <div className={`${isSelected ? 'bg-[#4ECDC4]' : 'bg-[#FF6B35]'} text-white px-3 py-1 text-sm font-bold uppercase whitespace-nowrap rounded shadow-lg animate-pulse`}>
             {isSelected ? '✓ Selected' : '💡 Neon Sign'}
           </div>
         </Html>
@@ -3352,6 +3544,9 @@ function PlacedItem3D({
   // Wrap item in a group to apply position and rotation
   const renderItem = () => {
     // Map item IDs to specific 3D models
+    if (item.id === 'workbench-hilo') {
+      return <HiLoBenchItem {...commonProps} />;
+    }
     if (item.id.includes('workbench')) {
       return <WorkbenchItem {...commonProps} />;
     }
@@ -4326,9 +4521,9 @@ function FloorClickHandler({
 }) {
   const { raycaster, camera, pointer } = useThree();
   
-  const handleClick = (e: THREE.Event) => {
+  const handleClick = (e: any) => {
     if (!enabled) return;
-    e.stopPropagation();
+    e.stopPropagation?.();
     
     // Get click position on floor plane
     const planeY = 0;

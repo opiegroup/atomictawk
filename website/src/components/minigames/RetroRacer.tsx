@@ -18,12 +18,16 @@ export function RetroRacer({ onClose, onScore }: RetroRacerProps) {
     obstacles: { x: number; y: number; lane: number }[];
     roadOffset: number;
     running: boolean;
+    lastSpawnY: number;
+    gameTime: number;
   }>({
     playerX: 1,
-    speed: 5,
+    speed: 4,
     obstacles: [],
     roadOffset: 0,
     running: true,
+    lastSpawnY: -200,
+    gameTime: 0,
   });
 
   const startGame = useCallback(() => {
@@ -31,10 +35,12 @@ export function RetroRacer({ onClose, onScore }: RetroRacerProps) {
     setGameOver(false);
     gameRef.current = {
       playerX: 1,
-      speed: 5,
+      speed: 4,
       obstacles: [],
       roadOffset: 0,
       running: true,
+      lastSpawnY: -200,
+      gameTime: 0,
     };
   }, []);
 
@@ -171,13 +177,47 @@ export function RetroRacer({ onClose, onScore }: RetroRacerProps) {
       drawPixelRect(roadX, 0, 6, canvas.height, "#E3E2D5");
       drawPixelRect(roadX + roadWidth - 6, 0, 6, canvas.height, "#E3E2D5");
 
-      // Spawn obstacles - less frequent, adjusted positions
-      if (Math.random() < 0.015 + score * 0.00008) {
-        const lane = Math.floor(Math.random() * 3);
-        game.obstacles.push({
-          x: roadX + 15 + lane * laneWidth,
-          y: -70,
-          lane: lane,
+      // Track game time for speed increases
+      game.gameTime += deltaTime;
+      
+      // Spawn obstacles with guaranteed gaps
+      // Minimum vertical spacing between obstacle rows (decreases as game progresses)
+      const minGap = Math.max(120, 200 - Math.floor(game.gameTime / 2000) * 10);
+      
+      // Check if enough distance since last spawn
+      game.lastSpawnY += game.speed;
+      
+      if (game.lastSpawnY >= minGap) {
+        game.lastSpawnY = 0;
+        
+        // Decide how many lanes to block (ALWAYS leave at least 1 lane free)
+        // Early game: mostly 1 car, sometimes 2
+        // Later: more often 2 cars
+        const difficulty = Math.min(game.gameTime / 30000, 1); // Max difficulty at 30 seconds
+        const blockTwoLanes = Math.random() < (0.2 + difficulty * 0.4); // 20% to 60% chance
+        
+        // Pick which lanes to block
+        const availableLanes = [0, 1, 2];
+        const blockedLanes: number[] = [];
+        
+        // Always block at least one lane
+        const firstLane = availableLanes[Math.floor(Math.random() * 3)];
+        blockedLanes.push(firstLane);
+        
+        // Maybe block a second lane (but NEVER all 3)
+        if (blockTwoLanes) {
+          const remainingLanes = availableLanes.filter(l => l !== firstLane);
+          const secondLane = remainingLanes[Math.floor(Math.random() * 2)];
+          blockedLanes.push(secondLane);
+        }
+        
+        // Spawn cars in blocked lanes
+        blockedLanes.forEach(lane => {
+          game.obstacles.push({
+            x: roadX + 15 + lane * laneWidth,
+            y: -70,
+            lane: lane,
+          });
         });
       }
 
@@ -214,20 +254,28 @@ export function RetroRacer({ onClose, onScore }: RetroRacerProps) {
       if (scoreTimer > 100) {
         setScore((s) => s + 1);
         scoreTimer = 0;
-        // Gradually increase speed
-        game.speed = Math.min(15, 5 + score * 0.01);
       }
+      
+      // Speed increases over time - starts slow, gets fast!
+      // Every 5 seconds, speed increases noticeably
+      const timeSeconds = game.gameTime / 1000;
+      game.speed = Math.min(18, 4 + timeSeconds * 0.3); // Starts at 4, gains 0.3 per second, max 18
 
       // Draw UI - bigger text
       ctx.fillStyle = "#CCAA4C";
       ctx.font = "bold 20px monospace";
       ctx.fillText(`SCORE: ${score}`, 10, 30);
-      ctx.fillText(`SPEED: ${Math.floor(game.speed * 10)}`, 10, 55);
+      ctx.fillText(`SPEED: ${Math.floor(game.speed * 12)} km/h`, 10, 55);
       
-      // Draw speedometer bar
-      const speedPercent = (game.speed - 5) / 10;
+      // Draw speedometer bar (speed ranges from 4 to 18)
+      const speedPercent = (game.speed - 4) / 14;
       drawPixelRect(10, 65, 100, 8, "#353535");
-      drawPixelRect(10, 65, 100 * speedPercent, 8, "#FF6B35");
+      drawPixelRect(10, 65, Math.floor(100 * speedPercent), 8, speedPercent > 0.7 ? "#E74C3C" : "#FF6B35");
+      
+      // Time survived
+      ctx.fillStyle = "#AEACA1";
+      ctx.font = "12px monospace";
+      ctx.fillText(`TIME: ${Math.floor(game.gameTime / 1000)}s`, 10, 85);
 
       if (game.running) {
         animationId = requestAnimationFrame(gameLoop);

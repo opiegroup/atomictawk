@@ -1,414 +1,209 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { AdminHeader } from "@/components/admin/AdminHeader";
-import { FormField, Input, Textarea, Select, ImageUpload } from "@/components/admin/FormField";
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { getSupabaseClient } from '@/lib/supabase/client'
+import { useRole } from '@/lib/supabase'
+import { Page } from '@/lib/supabase/types'
 import { 
-  GripVertical, 
-  Plus, 
-  Trash2, 
-  Edit, 
-  Image, 
-  Type, 
-  Film, 
   Layout, 
-  Grid3X3,
-  Quote,
-  List,
-  X,
-  Save,
-  Eye
-} from "lucide-react";
+  Plus, 
+  Edit, 
+  Eye, 
+  Trash2, 
+  Globe,
+  FileText,
+  Clock,
+  Home,
+  Loader2
+} from 'lucide-react'
 
-type BlockType = "hero" | "text" | "image" | "video" | "grid" | "quote" | "cta";
+export default function PagesListPage() {
+  const { isAdmin } = useRole()
+  const router = useRouter()
+  const [pages, setPages] = useState<Page[]>([])
+  const [loading, setLoading] = useState(true)
+  const [seeding, setSeeding] = useState(false)
 
-interface Block {
-  id: string;
-  type: BlockType;
-  content: Record<string, string>;
-}
+  useEffect(() => {
+    fetchPages()
+  }, [])
 
-interface Page {
-  id: string;
-  name: string;
-  slug: string;
-  blocks: Block[];
-}
+  const fetchPages = async () => {
+    const supabase = getSupabaseClient()
+    if (!supabase) return
 
-const blockTypes: { type: BlockType; label: string; icon: typeof Type }[] = [
-  { type: "hero", label: "Hero Section", icon: Layout },
-  { type: "text", label: "Text Block", icon: Type },
-  { type: "image", label: "Image", icon: Image },
-  { type: "video", label: "Video Embed", icon: Film },
-  { type: "grid", label: "Content Grid", icon: Grid3X3 },
-  { type: "quote", label: "Quote", icon: Quote },
-  { type: "cta", label: "Call to Action", icon: List },
-];
+    const { data, error } = await supabase
+      .from('pages')
+      .select('*')
+      .order('updated_at', { ascending: false })
 
-const defaultBlockContent: Record<BlockType, Record<string, string>> = {
-  hero: { title: "Hero Title", subtitle: "Hero subtitle text", buttonText: "Learn More", buttonLink: "/" },
-  text: { heading: "", body: "Enter your text content here..." },
-  image: { url: "", alt: "", caption: "" },
-  video: { url: "", title: "" },
-  grid: { columns: "3", items: "[]" },
-  quote: { text: "Quote text here...", author: "Author Name" },
-  cta: { title: "Call to Action", description: "Description text", buttonText: "Click Here", buttonLink: "/" },
-};
-
-// Sortable Block Component
-function SortableBlock({ 
-  block, 
-  onEdit, 
-  onDelete 
-}: { 
-  block: Block; 
-  onEdit: (block: Block) => void; 
-  onDelete: (id: string) => void;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: block.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  const BlockIcon = blockTypes.find(b => b.type === block.type)?.icon || Type;
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`flex items-center gap-4 bg-[#252219] border-2 border-[#AEACA1]/20 p-4 ${
-        isDragging ? "opacity-50 border-[#CCAA4C]" : ""
-      }`}
-    >
-      <button
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing p-2 text-[#AEACA1] hover:text-white"
-      >
-        <GripVertical className="w-5 h-5" />
-      </button>
-
-      <div className="w-10 h-10 bg-[#CCAA4C]/20 flex items-center justify-center">
-        <BlockIcon className="w-5 h-5 text-[#CCAA4C]" />
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <h3 className="font-bold text-white capitalize">{block.type} Block</h3>
-        <p className="text-sm text-[#AEACA1] truncate">
-          {block.content.title || block.content.heading || block.content.text || "No content"}
-        </p>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => onEdit(block)}
-          className="p-2 text-[#AEACA1] hover:text-[#CCAA4C] transition-colors"
-        >
-          <Edit className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => onDelete(block.id)}
-          className="p-2 text-[#AEACA1] hover:text-red-400 transition-colors"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export default function PageBuilderPage() {
-  const [pages, setPages] = useState<Page[]>([
-    {
-      id: "home",
-      name: "Homepage",
-      slug: "/",
-      blocks: [
-        { id: "1", type: "hero", content: { title: "Tawk Loud. Drive Louder. Feel Prouder.", subtitle: "Powering the Mechanical Conversation", buttonText: "Start Broadcast", buttonLink: "/shows" } },
-        { id: "2", type: "grid", content: { columns: "3", items: "Featured content grid" } },
-        { id: "3", type: "text", content: { heading: "About Us", body: "Atomic Tawk is a broadcast service for the mechanically inclined..." } },
-      ],
-    },
-  ]);
-  
-  const [selectedPage, setSelectedPage] = useState<Page>(pages[0]);
-  const [editingBlock, setEditingBlock] = useState<Block | null>(null);
-  const [showAddBlock, setShowAddBlock] = useState(false);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      const oldIndex = selectedPage.blocks.findIndex((b) => b.id === active.id);
-      const newIndex = selectedPage.blocks.findIndex((b) => b.id === over.id);
-      
-      const newBlocks = arrayMove(selectedPage.blocks, oldIndex, newIndex);
-      const updatedPage = { ...selectedPage, blocks: newBlocks };
-      
-      setSelectedPage(updatedPage);
-      setPages(pages.map(p => p.id === updatedPage.id ? updatedPage : p));
+    if (!error && data) {
+      setPages(data)
     }
-  };
+    setLoading(false)
+  }
 
-  const addBlock = (type: BlockType) => {
-    const newBlock: Block = {
-      id: `block-${Date.now()}`,
-      type,
-      content: { ...defaultBlockContent[type] },
-    };
-    
-    const updatedPage = {
-      ...selectedPage,
-      blocks: [...selectedPage.blocks, newBlock],
-    };
-    
-    setSelectedPage(updatedPage);
-    setPages(pages.map(p => p.id === updatedPage.id ? updatedPage : p));
-    setShowAddBlock(false);
-  };
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this page?')) return
 
-  const deleteBlock = (id: string) => {
-    if (confirm("Delete this block?")) {
-      const updatedPage = {
-        ...selectedPage,
-        blocks: selectedPage.blocks.filter(b => b.id !== id),
-      };
-      setSelectedPage(updatedPage);
-      setPages(pages.map(p => p.id === updatedPage.id ? updatedPage : p));
+    const supabase = getSupabaseClient()
+    if (!supabase) return
+
+    await supabase.from('pages').delete().eq('id', id)
+    setPages(pages.filter(p => p.id !== id))
+  }
+
+  const seedHomePage = async () => {
+    setSeeding(true)
+    try {
+      const res = await fetch('/api/pages/seed-home', { method: 'POST' })
+      const data = await res.json()
+      
+      if (data.success) {
+        alert('Home page created! Redirecting to editor...')
+        router.push(`/admin/pages/${data.pageId}`)
+      } else {
+        alert(`Error: ${data.error}`)
+      }
+    } catch (err) {
+      alert('Failed to seed home page')
     }
-  };
+    setSeeding(false)
+  }
 
-  const saveBlockEdit = () => {
-    if (!editingBlock) return;
-    
-    const updatedPage = {
-      ...selectedPage,
-      blocks: selectedPage.blocks.map(b => b.id === editingBlock.id ? editingBlock : b),
-    };
-    
-    setSelectedPage(updatedPage);
-    setPages(pages.map(p => p.id === updatedPage.id ? updatedPage : p));
-    setEditingBlock(null);
-  };
+  // Check if home page already exists
+  const hasHomePage = pages.some(p => p.slug === 'home')
 
-  const updateBlockContent = (key: string, value: string) => {
-    if (!editingBlock) return;
-    setEditingBlock({
-      ...editingBlock,
-      content: { ...editingBlock.content, [key]: value },
-    });
-  };
-
-  return (
-    <div className="min-h-screen">
-      <AdminHeader
-        title="Page Builder"
-        subtitle="Drag and drop to build your pages"
-      />
-
-      <div className="flex">
-        {/* Page List Sidebar */}
-        <div className="w-64 bg-[#1f1c13] border-r-2 border-[#AEACA1]/20 p-4 min-h-[calc(100vh-140px)]">
-          <h3 className="text-xs font-black uppercase tracking-widest text-[#AEACA1] mb-4">
-            Pages
-          </h3>
-          <div className="space-y-2">
-            {pages.map((page) => (
-              <button
-                key={page.id}
-                onClick={() => setSelectedPage(page)}
-                className={`w-full text-left px-4 py-3 transition-colors ${
-                  selectedPage.id === page.id
-                    ? "bg-[#CCAA4C] text-[#353535]"
-                    : "text-[#AEACA1] hover:bg-[#AEACA1]/10 hover:text-white"
-                }`}
-              >
-                <span className="font-bold">{page.name}</span>
-                <span className="block text-xs opacity-60">{page.slug}</span>
-              </button>
-            ))}
-          </div>
+  if (!isAdmin) {
+    return (
+      <div className="p-8">
+        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4">
+          <p className="text-red-400">You do not have permission to view this page.</p>
         </div>
+      </div>
+    )
+  }
 
-        {/* Page Editor */}
-        <div className="flex-1 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-black text-white" style={{ fontFamily: "var(--font-oswald), sans-serif" }}>
-                {selectedPage.name}
-              </h2>
-              <p className="text-sm text-[#AEACA1]">{selectedPage.blocks.length} blocks</p>
-            </div>
-            <div className="flex gap-4">
-              <button className="flex items-center gap-2 px-4 py-2 border-2 border-[#AEACA1]/30 text-[#AEACA1] hover:text-white hover:border-white transition-colors">
-                <Eye className="w-4 h-4" />
-                Preview
-              </button>
-              <button
-                onClick={() => setShowAddBlock(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#CCAA4C] text-[#353535] font-bold hover:bg-[#E3E2D5] transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Add Block
-              </button>
-            </div>
-          </div>
-
-          {/* Blocks List */}
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={selectedPage.blocks}
-              strategy={verticalListSortingStrategy}
+  return (
+    <div className="p-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+            <Layout className="w-8 h-8 text-[#CCAA4C]" />
+            Page Builder
+          </h1>
+          <p className="text-[#AEACA1] mt-1">
+            Create and manage pages with the drag-and-drop builder
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {!hasHomePage && (
+            <button
+              onClick={seedHomePage}
+              disabled={seeding}
+              className="flex items-center gap-2 px-4 py-2 bg-[#FF6B35] text-white rounded-lg font-bold text-sm hover:bg-[#FF6B35]/80 transition-colors disabled:opacity-50"
             >
-              <div className="space-y-2">
-                {selectedPage.blocks.map((block) => (
-                  <SortableBlock
-                    key={block.id}
-                    block={block}
-                    onEdit={setEditingBlock}
-                    onDelete={deleteBlock}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-
-          {selectedPage.blocks.length === 0 && (
-            <div className="text-center py-20 border-2 border-dashed border-[#AEACA1]/30">
-              <Layout className="w-12 h-12 text-[#AEACA1] mx-auto mb-4" />
-              <p className="text-[#AEACA1]">No blocks yet</p>
-              <button
-                onClick={() => setShowAddBlock(true)}
-                className="mt-4 text-[#CCAA4C] hover:underline font-bold"
-              >
-                Add your first block
-              </button>
-            </div>
+              {seeding ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Home className="w-4 h-4" />
+              )}
+              {seeding ? 'Creating...' : 'Seed Home Page'}
+            </button>
           )}
+          <Link
+            href="/admin/pages/new"
+            className="flex items-center gap-2 px-4 py-2 bg-[#CCAA4C] text-[#353535] rounded-lg font-bold text-sm hover:bg-[#CCAA4C]/80 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New Page
+          </Link>
         </div>
       </div>
 
-      {/* Add Block Modal */}
-      {showAddBlock && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
-          <div className="bg-[#252219] border-2 border-[#AEACA1]/30 w-full max-w-2xl mx-4 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black text-white" style={{ fontFamily: "var(--font-oswald), sans-serif" }}>
-                Add Block
-              </h3>
-              <button onClick={() => setShowAddBlock(false)} className="p-2 text-[#AEACA1] hover:text-white">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {blockTypes.map(({ type, label, icon: Icon }) => (
-                <button
-                  key={type}
-                  onClick={() => addBlock(type)}
-                  className="flex flex-col items-center gap-3 p-6 border-2 border-[#AEACA1]/30 hover:border-[#CCAA4C] hover:bg-[#CCAA4C]/10 transition-colors"
-                >
-                  <Icon className="w-8 h-8 text-[#CCAA4C]" />
-                  <span className="text-sm font-bold text-white">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Pages Grid */}
+      {loading ? (
+        <div className="text-center py-12 text-[#AEACA1]">Loading pages...</div>
+      ) : pages.length === 0 ? (
+        <div className="text-center py-12">
+          <FileText className="w-16 h-16 text-[#353535] mx-auto mb-4" />
+          <p className="text-[#AEACA1] mb-4">No pages yet</p>
+          <Link
+            href="/admin/pages/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#CCAA4C] text-[#353535] rounded font-bold text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Create Your First Page
+          </Link>
         </div>
-      )}
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {pages.map(page => (
+            <div
+              key={page.id}
+              className="bg-[#353535] rounded-lg overflow-hidden border-2 border-transparent hover:border-[#CCAA4C]/50 transition-colors"
+            >
+              {/* Preview */}
+              <div className="aspect-video bg-[#252525] flex items-center justify-center">
+                <Layout className="w-12 h-12 text-[#353535]" />
+              </div>
 
-      {/* Edit Block Modal */}
-      {editingBlock && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center overflow-auto py-10">
-          <div className="bg-[#252219] border-2 border-[#AEACA1]/30 w-full max-w-2xl mx-4">
-            <div className="flex items-center justify-between p-6 border-b-2 border-[#AEACA1]/20">
-              <h3 className="text-xl font-black text-white capitalize" style={{ fontFamily: "var(--font-oswald), sans-serif" }}>
-                Edit {editingBlock.type} Block
-              </h3>
-              <button onClick={() => setEditingBlock(null)} className="p-2 text-[#AEACA1] hover:text-white">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
+              {/* Info */}
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h3 className="text-white font-bold">{page.title}</h3>
+                    <p className="text-[#CCAA4C] text-sm font-mono">/{page.slug}</p>
+                  </div>
+                  <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                    page.status === 'published' 
+                      ? 'bg-green-500/20 text-green-400' 
+                      : 'bg-yellow-500/20 text-yellow-400'
+                  }`}>
+                    {page.status}
+                  </span>
+                </div>
 
-            <div className="p-6 space-y-4 max-h-[60vh] overflow-auto">
-              {Object.entries(editingBlock.content).map(([key, value]) => (
-                <FormField key={key} label={key.replace(/([A-Z])/g, ' $1').trim()}>
-                  {key === 'body' || key === 'description' ? (
-                    <Textarea
-                      value={value}
-                      onChange={(e) => updateBlockContent(key, e.target.value)}
-                      rows={4}
-                    />
-                  ) : key === 'url' && editingBlock.type === 'image' ? (
-                    <ImageUpload
-                      value={value}
-                      onChange={(url) => updateBlockContent(key, url)}
-                    />
-                  ) : (
-                    <Input
-                      value={value}
-                      onChange={(e) => updateBlockContent(key, e.target.value)}
-                    />
+                <div className="flex items-center gap-2 text-[#AEACA1] text-xs mb-4">
+                  <Clock className="w-3 h-3" />
+                  Updated {new Date(page.updated_at).toLocaleDateString()}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/admin/pages/${page.id}`}
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#CCAA4C] text-[#353535] rounded font-bold text-xs hover:bg-[#CCAA4C]/80 transition-colors"
+                  >
+                    <Edit className="w-3 h-3" />
+                    Edit
+                  </Link>
+                  {page.status === 'published' && (
+                    <Link
+                      href={`/${page.slug}`}
+                      target="_blank"
+                      className="px-3 py-2 bg-[#252525] text-[#AEACA1] rounded font-bold text-xs hover:bg-[#1a1a1a] transition-colors"
+                      title="View Live"
+                    >
+                      <Globe className="w-3 h-3" />
+                    </Link>
                   )}
-                </FormField>
-              ))}
+                  <button
+                    onClick={() => handleDelete(page.id)}
+                    className="px-3 py-2 bg-[#252525] text-red-400 rounded font-bold text-xs hover:bg-red-500/20 transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
             </div>
-
-            <div className="flex items-center justify-end gap-4 p-6 border-t-2 border-[#AEACA1]/20">
-              <button
-                onClick={() => setEditingBlock(null)}
-                className="px-6 py-3 border-2 border-[#AEACA1]/30 text-[#AEACA1] font-bold uppercase tracking-widest text-sm hover:border-white hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveBlockEdit}
-                className="flex items-center gap-2 px-6 py-3 bg-[#CCAA4C] text-[#353535] font-bold uppercase tracking-widest text-sm hover:bg-[#E3E2D5] transition-colors"
-              >
-                <Save className="w-4 h-4" />
-                Save
-              </button>
-            </div>
-          </div>
+          ))}
         </div>
       )}
     </div>
-  );
+  )
 }

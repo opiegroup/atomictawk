@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   LayoutDashboard, 
   FileText, 
@@ -11,17 +11,27 @@ import {
   Users,
   BarChart3,
   LogOut,
-  Radio
+  Radio,
+  MessageSquare,
+  Target,
+  Shield,
+  ClipboardList
 } from "lucide-react";
+import { useAuth, useRole } from "@/lib/supabase";
+import { useEffect } from "react";
 
+// Navigation items with role requirements
 const navItems = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/content", label: "Content", icon: FileText },
-  { href: "/admin/products", label: "Products", icon: ShoppingBag },
-  { href: "/admin/pages", label: "Page Builder", icon: Layout },
-  { href: "/admin/subscribers", label: "Subscribers", icon: Users },
-  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, roles: ["god", "admin", "sales"] },
+  { href: "/admin/pages", label: "Page Builder", icon: Layout, roles: ["god", "admin"] },
+  { href: "/admin/content", label: "Content", icon: FileText, roles: ["god", "admin"] },
+  { href: "/admin/products", label: "Products", icon: ShoppingBag, roles: ["god", "admin"] },
+  { href: "/admin/community", label: "Community", icon: MessageSquare, roles: ["god", "admin"] },
+  { href: "/admin/leads", label: "Leads", icon: Target, roles: ["god", "sales"] },
+  { href: "/admin/users", label: "Users", icon: Users, roles: ["god", "admin"] },
+  { href: "/admin/audit", label: "Audit Log", icon: ClipboardList, roles: ["god"] },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3, roles: ["god", "admin"] },
+  { href: "/admin/settings", label: "Settings", icon: Settings, roles: ["god"] },
 ];
 
 export default function AdminLayout({
@@ -30,6 +40,39 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, profile, loading, signOut } = useAuth();
+  const { role, isAdmin, isGod, isSales } = useRole();
+
+  // Redirect if not authenticated or not authorized
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login?redirect=/admin');
+    }
+  }, [loading, user, router]);
+
+  // Filter nav items based on role
+  const filteredNavItems = navItems.filter(item => {
+    if (!role) return false;
+    return item.roles.includes(role);
+  });
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#1f1c13] flex items-center justify-center">
+        <div className="text-[#CCAA4C]">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user || (!isAdmin && !isGod && !isSales)) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#1f1c13] flex">
@@ -55,9 +98,31 @@ export default function AdminLayout({
           </Link>
         </div>
 
+        {/* User Info */}
+        <div className="p-4 border-b-2 border-[#AEACA1]/20">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#CCAA4C]/20 flex items-center justify-center">
+              <span className="text-[#CCAA4C] font-bold">
+                {profile?.display_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {profile?.display_name || user?.email}
+              </p>
+              <div className="flex items-center gap-1">
+                <Shield className="w-3 h-3 text-[#CCAA4C]" />
+                <span className="text-xs text-[#CCAA4C] uppercase font-bold">
+                  {role}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => {
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || 
               (item.href !== "/admin" && pathname.startsWith(item.href));
@@ -82,16 +147,25 @@ export default function AdminLayout({
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t-2 border-[#AEACA1]/20">
+        <div className="p-4 border-t-2 border-[#AEACA1]/20 space-y-1">
           <Link 
             href="/"
             className="flex items-center gap-3 px-4 py-3 text-[#AEACA1] hover:text-white transition-colors"
           >
-            <LogOut className="w-5 h-5" />
+            <Radio className="w-5 h-5" />
             <span className="text-sm font-bold uppercase tracking-wide">
               View Site
             </span>
           </Link>
+          <button 
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3 px-4 py-3 text-[#AEACA1] hover:text-red-400 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-sm font-bold uppercase tracking-wide">
+              Sign Out
+            </span>
+          </button>
         </div>
       </aside>
 

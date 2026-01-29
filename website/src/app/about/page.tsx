@@ -194,7 +194,7 @@ export default function AboutPage() {
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-center">
             {[
-              "Powering the Mechanical Conversation",
+              "Where real blokes talk torque.",
               "Official Mechanical Broadcast",
               "Talk Loud. Drive Louder.",
               "Broadcasting from the Shed",

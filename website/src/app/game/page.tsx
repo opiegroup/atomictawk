@@ -359,9 +359,14 @@ export default function GamePage() {
     const roomDepth = room?.id === 'shed' ? 6 : room?.id === 'garage' ? 10 : room?.id === 'bunker' ? 12 : 16;
     
     let position: { x: number; y: number; z: number };
+    let rotation = 0;
     
-    if (WALL_ITEMS.includes(item.id)) {
-      // Wall items go on the back wall - positioned flush against wall
+    if (item.id === 'roller-door') {
+      // Roller door goes on the RIGHT wall - positioned flush against wall
+      position = { x: roomWidth / 2 - 0.15, y: 1.5, z: 0 }; // Right wall, centered
+      rotation = -90; // Rotate to face into the room from right wall
+    } else if (WALL_ITEMS.includes(item.id)) {
+      // Other wall items go on the back wall - positioned flush against wall
       // Y position is center of item - keep well above floor (minimum 1.5m center)
       const wallX = (Math.random() - 0.5) * (roomWidth - 3);
       const wallY = 1.5 + Math.random() * 0.3; // Height between 1.5m and 1.8m center
@@ -382,7 +387,7 @@ export default function GamePage() {
       instanceId: `${item.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       item,
       position,
-      rotation: 0
+      rotation
     };
     
     gameAudio.playAddItem();

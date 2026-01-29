@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { db } from "@/lib/db";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder", {
-  apiVersion: "2025-01-27.acacia",
+  apiVersion: "2026-01-28.clover",
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
               name: session.customer_details?.name || undefined,
               status: "paid",
               total: session.amount_total || 0,
-              shippingAddress: JSON.stringify(session.shipping_details?.address || {}),
+              shippingAddress: JSON.stringify((session as any).shipping_details?.address || {}),
               stripeSessionId: session.id,
               stripePaymentId: session.payment_intent as string,
               items: {

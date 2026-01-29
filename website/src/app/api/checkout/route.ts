@@ -3,7 +3,7 @@ import Stripe from "stripe";
 
 // Initialize Stripe - in production, ensure STRIPE_SECRET_KEY is set in .env
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder", {
-  apiVersion: "2025-01-27.acacia",
+  apiVersion: "2026-01-28.clover",
 });
 
 // Mock product data - in production this comes from database
