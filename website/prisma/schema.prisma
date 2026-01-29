@@ -1,0 +1,121 @@
+// Prisma schema for Atomic Tawk
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Content Categories
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  icon        String?
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  content     Content[]
+}
+
+// Main content (videos, articles, broadcasts)
+model Content {
+  id           String   @id @default(cuid())
+  title        String
+  slug         String   @unique
+  description  String?
+  body         String?  // For articles
+  videoUrl     String?  // YouTube/embed URL
+  thumbnailUrl String?
+  refId        String?  // e.g., "AT-990-2"
+  contentType  String   @default("video") // video, article, broadcast
+  status       String   @default("draft") // draft, published, archived
+  featured     Boolean  @default(false)
+  isLive       Boolean  @default(false)
+  publishedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  category     Category? @relation(fields: [categoryId], references: [id])
+  categoryId   String?
+}
+
+// Products for the store
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  description String?
+  specs       String?     // JSON string for specs
+  price       Int         // Price in cents
+  comparePrice Int?       // Original price for sale items
+  images      String      // JSON array of image URLs
+  category    String      @default("apparel") // apparel, poster, sticker, patch, cap
+  serialNo    String?     // e.g., "AT-TEE-01"
+  inStock     Boolean     @default(true)
+  stockQty    Int         @default(100)
+  stripeId    String?     // Stripe product ID
+  stripePriceId String?   // Stripe price ID
+  featured    Boolean     @default(false)
+  status      String      @default("active") // active, draft, archived
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  variants    ProductVariant[]
+  orderItems  OrderItem[]
+}
+
+// Product variants (sizes, colors)
+model ProductVariant {
+  id        String   @id @default(cuid())
+  name      String   // e.g., "M", "L", "XL"
+  type      String   @default("size") // size, color
+  stockQty  Int      @default(100)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+}
+
+// Orders
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique
+  email           String
+  name            String?
+  status          String      @default("pending") // pending, paid, shipped, delivered, cancelled
+  total           Int         // Total in cents
+  shippingAddress String?     // JSON
+  stripeSessionId String?
+  stripePaymentId String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  items           OrderItem[]
+}
+
+// Order line items
+model OrderItem {
+  id        String   @id @default(cuid())
+  quantity  Int
+  price     Int      // Price at time of order
+  variant   String?  // Size/color selected
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+}
+
+// Email subscribers
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+// Site settings / config
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}

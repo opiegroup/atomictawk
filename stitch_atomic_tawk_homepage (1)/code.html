@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Atomic Tawk Broadcasts Grid</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#cdaa4c",
+                        "background-light": "#f8f7f6",
+                        "background-dark": "#1f1c13",
+                        "industrial-grey": "#AEACA1",
+                        "atomic-yellow": "#cdaa4c",
+                        "cream": "#fdfaf1"
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .industrial-border {
+            border: 2px solid #AEACA1;
+        }
+        .hazard-stripe {
+            background: repeating-linear-gradient(
+                45deg,
+                #cdaa4c,
+                #cdaa4c 10px,
+                #1f1c13 10px,
+                #1f1c13 20px
+            );
+        }
+        .crt-scanline {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+        .monolithic-text {
+            text-transform: uppercase;
+            letter-spacing: -0.05em;
+            line-height: 0.85;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-background-dark dark:text-cream selection:bg-primary selection:text-black">
+<div class="layout-container flex h-full min-h-screen flex-col">
+<!-- Monolithic Top Navigation -->
+<header class="border-b-4 border-industrial-grey dark:border-industrial-grey bg-background-light dark:bg-background-dark z-20 sticky top-0">
+<div class="flex items-center justify-between px-6 py-4">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<div class="size-10 bg-primary flex items-center justify-center rounded-sm">
+<span class="material-symbols-outlined text-background-dark font-bold text-3xl">dangerous</span>
+</div>
+<div>
+<h2 class="text-2xl font-black monolithic-text tracking-tighter">ATOMIC TAWK</h2>
+<p class="text-[10px] font-bold text-industrial-grey tracking-widest leading-none">EST. 1952 / RETRO-FUTURE DIV.</p>
+</div>
+</div>
+<nav class="hidden md:flex items-center gap-6 ml-8">
+<a class="text-xs font-bold tracking-[0.2em] hover:text-primary transition-colors border-b-2 border-primary pb-1" href="#">LIVE FEED</a>
+<a class="text-xs font-bold tracking-[0.2em] text-industrial-grey hover:text-cream transition-colors" href="#">ARCHIVES</a>
+<a class="text-xs font-bold tracking-[0.2em] text-industrial-grey hover:text-cream transition-colors" href="#">MANUALS</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-industrial-grey text-xl">search</span>
+<input class="bg-black/20 border-industrial-grey text-xs font-bold py-2 pl-10 pr-4 w-64 focus:ring-primary focus:border-primary rounded-sm placeholder:text-industrial-grey/50" placeholder="INQUIRE DATABASE..." type="text"/>
+</div>
+<button class="bg-primary text-black px-5 py-2 text-xs font-bold tracking-widest hover:bg-white transition-colors">LOGIN</button>
+<button class="bg-industrial-grey/20 p-2 rounded-sm hover:bg-industrial-grey/40 transition-colors">
+<span class="material-symbols-outlined text-cream">settings</span>
+</button>
+</div>
+</div>
+<div class="h-2 hazard-stripe w-full opacity-50"></div>
+</header>
+<div class="flex flex-1">
+<!-- Industrial Sidebar Navigation -->
+<aside class="w-72 border-r-4 border-industrial-grey bg-background-light dark:bg-[#18160f] p-6 hidden xl:flex flex-col justify-between">
+<div class="space-y-8">
+<div>
+<p class="text-[10px] font-black text-industrial-grey mb-4 tracking-[0.3em]">SERVICE CATEGORIES</p>
+<div class="space-y-2">
+<a class="flex items-center gap-4 p-3 bg-primary text-black group transition-all" href="#">
+<span class="material-symbols-outlined font-bold">tire_repair</span>
+<span class="text-sm font-bold tracking-tight">BURNOUTS &amp; CARS</span>
+</a>
+<a class="flex items-center gap-4 p-3 hover:bg-industrial-grey/10 transition-all border border-transparent hover:border-industrial-grey" href="#">
+<span class="material-symbols-outlined text-industrial-grey">build</span>
+<span class="text-sm font-bold tracking-tight">THE SHED</span>
+</a>
+<a class="flex items-center gap-4 p-3 hover:bg-industrial-grey/10 transition-all border border-transparent hover:border-industrial-grey" href="#">
+<span class="material-symbols-outlined text-industrial-grey">science</span>
+<span class="text-sm font-bold tracking-tight">BLOKE SCIENCE</span>
+</a>
+<a class="flex items-center gap-4 p-3 hover:bg-industrial-grey/10 transition-all border border-transparent hover:border-industrial-grey" href="#">
+<span class="material-symbols-outlined text-industrial-grey">settings_input_antenna</span>
+<span class="text-sm font-bold tracking-tight">TRANSMISSIONS</span>
+</a>
+</div>
+</div>
+<div>
+<p class="text-[10px] font-black text-industrial-grey mb-4 tracking-[0.3em]">SYSTEM STATUS</p>
+<div class="border-2 border-industrial-grey p-4 space-y-3 bg-black/40">
+<div class="flex justify-between items-center">
+<span class="text-[10px] font-bold">REVS / MIN</span>
+<span class="text-xs font-mono text-primary">7.4k</span>
+</div>
+<div class="h-1.5 bg-industrial-grey/20 w-full overflow-hidden">
+<div class="h-full bg-primary w-[74%]"></div>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-[10px] font-bold">TORQUE</span>
+<span class="text-xs font-mono text-primary">HIGH</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-auto">
+<button class="w-full flex items-center justify-center gap-2 border-2 border-primary text-primary py-3 font-black text-xs tracking-widest hover:bg-primary hover:text-black transition-colors">
+<span class="material-symbols-outlined">videocam</span>
+                        RECORD FEED
+                    </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto">
+<!-- Page Heading Placard -->
+<div class="p-8 border-b-2 border-industrial-grey/30 bg-[#252219]">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div class="space-y-2">
+<p class="text-primary text-sm font-bold tracking-[0.4em]">FREQUENCY: 104.2 MHZ</p>
+<h1 class="text-6xl font-black monolithic-text dark:text-cream">ATOMIC TAWK BROADCAST SERVICE</h1>
+<p class="text-industrial-grey text-lg font-medium">MECHANICAL SAFETY NOTICE: ALL HANDS TO THE TRACK</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-6 py-3 bg-industrial-grey/10 border-2 border-industrial-grey text-cream text-xs font-bold tracking-widest hover:bg-industrial-grey hover:text-black transition-colors">
+<span class="material-symbols-outlined text-sm">refresh</span>
+                                REFRESH FEED
+                            </button>
+</div>
+</div>
+</div>
+<!-- Control Bar / Tabs -->
+<div class="px-8 pt-6">
+<div class="flex border-b-2 border-industrial-grey gap-8 overflow-x-auto">
+<a class="pb-4 border-b-4 border-primary text-primary text-xs font-black tracking-widest whitespace-nowrap" href="#">ALL BROADCASTS</a>
+<a class="pb-4 border-b-4 border-transparent text-industrial-grey hover:text-cream text-xs font-black tracking-widest whitespace-nowrap transition-colors" href="#">LATEST REVS</a>
+<a class="pb-4 border-b-4 border-transparent text-industrial-grey hover:text-cream text-xs font-black tracking-widest whitespace-nowrap transition-colors" href="#">HIGH TORQUE</a>
+<a class="pb-4 border-b-4 border-transparent text-industrial-grey hover:text-cream text-xs font-black tracking-widest whitespace-nowrap transition-colors" href="#">ARCHIVED DATA</a>
+</div>
+</div>
+<!-- Video Grid -->
+<div class="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<!-- Video Card 1 -->
+<div class="group cursor-pointer">
+<div class="industrial-border bg-[#18160f] relative overflow-hidden transition-all group-hover:border-primary group-hover:shadow-[0_0_15px_rgba(205,170,76,0.3)]">
+<!-- Tag Top -->
+<div class="flex justify-between items-center px-3 py-1 bg-industrial-grey/20 border-b-2 border-industrial-grey group-hover:bg-primary/20 group-hover:border-primary">
+<span class="text-[9px] font-black tracking-tighter">REF ID: AT-990-2</span>
+<span class="flex items-center gap-1 text-[9px] font-black text-red-500">
+<span class="size-1.5 bg-red-500 rounded-full animate-pulse"></span> LIVE FEED
+                                </span>
+</div>
+<!-- Thumbnail -->
+<div class="relative aspect-video bg-black overflow-hidden">
+<div class="absolute inset-0 crt-scanline z-10 opacity-40"></div>
+<img class="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500 scale-110 group-hover:scale-100" data-alt="Close up of a vintage racing car engine with chrome parts" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVox02QwVYzubDv-ORUrBsaoQZrcnz-1OokOW3OQb_E-Pp179jkZKuwmgqnRK5q7NcRPjSS3ZcPtHr8YtTaX0Kk80pi-VID-ZXWALdMc9XV2GfDRU0WRD-f3HDLdzsFzGGVL7AXrWlnGV7DN9dumTgvzO7gULqaKKXkiQX5PWeYGw-Tro57R5wuVmqdwg2hi9x-tr5bRNKplec4zo3Vb3ABHTdgL2aV6_RxGZxoMNsww1S1d-oXwFaFBRXG_vjxpXXqCtS4K6JB4cH"/>
+<div class="absolute bottom-2 right-2 bg-black/80 px-2 py-1 text-[10px] font-mono border border-industrial-grey">12:44:09</div>
+</div>
+<!-- Caption -->
+<div class="p-4 space-y-2">
+<p class="text-[10px] font-black text-primary tracking-[0.2em]">MECHANICAL SAFETY NOTICE</p>
+<h3 class="text-xl font-black monolithic-text tracking-tight group-hover:text-primary">BURNOUT THEORY: FRICTION &amp; TORQUE CALIBRATION</h3>
+<div class="flex items-center justify-between pt-2 border-t border-industrial-grey/30">
+<span class="text-[10px] font-bold text-industrial-grey uppercase">Operator: Mack "The Piston"</span>
+<span class="text-[10px] font-bold text-industrial-grey">REV. 08-24-X</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Video Card 2 -->
+<div class="group cursor-pointer">
+<div class="industrial-border bg-[#18160f] relative overflow-hidden transition-all group-hover:border-primary group-hover:shadow-[0_0_15px_rgba(205,170,76,0.3)]">
+<div class="flex justify-between items-center px-3 py-1 bg-industrial-grey/20 border-b-2 border-industrial-grey group-hover:bg-primary/20 group-hover:border-primary">
+<span class="text-[9px] font-black tracking-tighter">REF ID: AT-812-4</span>
+<span class="text-[9px] font-black text-industrial-grey">ARCHIVED DATA</span>
+</div>
+<div class="relative aspect-video bg-black overflow-hidden">
+<div class="absolute inset-0 crt-scanline z-10 opacity-40"></div>
+<img class="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500 scale-110 group-hover:scale-100" data-alt="Mechanical workspace with various wrenches and tools spread out" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAV8pyM7BPtofSPjjrGL1ZhWpAW-_y0Zh9_HfxkcJq0BYixS4uKb1GztzkNx9xfHLqvdcbPdYOuKEK-chn1O4mmQFofyKnRW9-UxTyG9qk0-C7wyrAGAKgwXL339BbW-aSlyIiN5i2V2V5_NdFgvfODcnX1CyonRW_UycrF1JjK7lpn5VNKmg8UyQZTQd7e74i9zG3O3VWBogbYniu4I4CuVZoBAEAoQWfIHHvtF2luU8x08DnwbrICGRsV1ck07HDi-VGvNWUgsDJv"/>
+<div class="absolute bottom-2 right-2 bg-black/80 px-2 py-1 text-[10px] font-mono border border-industrial-grey">08:15:33</div>
+</div>
+<div class="p-4 space-y-2">
+<p class="text-[10px] font-black text-primary tracking-[0.2em]">TECHNICAL BULLETIN</p>
+<h3 class="text-xl font-black monolithic-text tracking-tight group-hover:text-primary">PISTON WEAR: CRITICAL TOLERANCES IN HIGH REVS</h3>
+<div class="flex items-center justify-between pt-2 border-t border-industrial-grey/30">
+<span class="text-[10px] font-bold text-industrial-grey uppercase">Log: The Shed Diaries</span>
+<span class="text-[10px] font-bold text-industrial-grey">REV. 07-12-X</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Video Card 3 -->
+<div class="group cursor-pointer">
+<div class="industrial-border bg-[#18160f] relative overflow-hidden transition-all group-hover:border-primary group-hover:shadow-[0_0_15px_rgba(205,170,76,0.3)]">
+<div class="flex justify-between items-center px-3 py-1 bg-industrial-grey/20 border-b-2 border-industrial-grey group-hover:bg-primary/20 group-hover:border-primary">
+<span class="text-[9px] font-black tracking-tighter">REF ID: AT-443-1</span>
+<span class="text-[9px] font-black text-industrial-grey">ARCHIVED DATA</span>
+</div>
+<div class="relative aspect-video bg-black overflow-hidden">
+<div class="absolute inset-0 crt-scanline z-10 opacity-40"></div>
+<img class="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500 scale-110 group-hover:scale-100" data-alt="Industrial laboratory with mechanical test equipment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC27wSgmSwXecfVXXvDxJpjVZPY5nN8J4DuqL-2f_Zsg5QukzH_z4n282B0X1GkN0LeiXAhh_IZWWribpzpfDId4yj_BrMdrNJxw54rtV8U-Rro0NiUMlFR4CNuml1wg7rLBh6oZgHiDitRfx-GyLBpL2H0GKFf8tjYCEOlqqBYBkCMbUgO-POzpyj0kO00buy30ORSQHFRb1UI7ekeXTc7n2-L9erxJM3QSHPZOfezJuCp4ainQWrFLvcYK1oMDBYMrWZ8XjWS4pxF"/>
+<div class="absolute bottom-2 right-2 bg-black/80 px-2 py-1 text-[10px] font-mono border border-industrial-grey">22:04:11</div>
+</div>
+<div class="p-4 space-y-2">
+<p class="text-[10px] font-black text-primary tracking-[0.2em]">PROCEDURE LOG</p>
+<h3 class="text-xl font-black monolithic-text tracking-tight group-hover:text-primary">BLOKE SCIENCE 101: THE THERMODYNAMICS OF OIL</h3>
+<div class="flex items-center justify-between pt-2 border-t border-industrial-grey/30">
+<span class="text-[10px] font-bold text-industrial-grey uppercase">Auth: Dr. Gearbox</span>
+<span class="text-[10px] font-bold text-industrial-grey">REV. 05-09-X</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Video Card 4 -->
+<div class="group cursor-pointer">
+<div class="industrial-border bg-[#18160f] relative overflow-hidden transition-all group-hover:border-primary group-hover:shadow-[0_0_15px_rgba(205,170,76,0.3)]">
+<div class="flex justify-between items-center px-3 py-1 bg-industrial-grey/20 border-b-2 border-industrial-grey group-hover:bg-primary/20 group-hover:border-primary">
+<span class="text-[9px] font-black tracking-tighter">REF ID: AT-102-9</span>
+<span class="text-[9px] font-black text-industrial-grey">ARCHIVED DATA</span>
+</div>
+<div class="relative aspect-video bg-black overflow-hidden">
+<div class="absolute inset-0 crt-scanline z-10 opacity-40"></div>
+<img class="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500 scale-110 group-hover:scale-100" data-alt="Classic car transmission disassembled on a workbench" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4M7RqYZZlSHCHIrBqg9FHkzMjesMhu_fQF9Qb3KvGh0H6HNhWPM3ilgD4gaC6do-9GKU5Is2zGXROyOUpwsUSVMdyaGhLADetFRF7XpLu6MNQxX9IIKTVKQJtrItjWccFrLLY8jQXvbiLrdQZuy_BRMeXv3SzO1U7O0BtXE8-9do830sBtC2eCs6DncYJ3M_56EiAVqWnVL28rf1oRB5dMLaepZwCHm1gZjv5O8UOxVgzQAEhELgyzK4ZUqgnn_RW1doQPWYfh0KM"/>
+<div class="absolute bottom-2 right-2 bg-black/80 px-2 py-1 text-[10px] font-mono border border-industrial-grey">05:40:19</div>
+</div>
+<div class="p-4 space-y-2">
+<p class="text-[10px] font-black text-primary tracking-[0.2em]">OPERATIONAL LOG</p>
+<h3 class="text-xl font-black monolithic-text tracking-tight group-hover:text-primary">TORQUE RATIO CALIBRATION: FIELD REPORT</h3>
+<div class="flex items-center justify-between pt-2 border-t border-industrial-grey/30">
+<span class="text-[10px] font-bold text-industrial-grey uppercase">Unit: Transmission Lab</span>
+<span class="text-[10px] font-bold text-industrial-grey">REV. 03-11-X</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Video Card 5 -->
+<div class="group cursor-pointer">
+<div class="industrial-border bg-[#18160f] relative overflow-hidden transition-all group-hover:border-primary group-hover:shadow-[0_0_15px_rgba(205,170,76,0.3)]">
+<div class="flex justify-between items-center px-3 py-1 bg-industrial-grey/20 border-b-2 border-industrial-grey group-hover:bg-primary/20 group-hover:border-primary">
+<span class="text-[9px] font-black tracking-tighter">REF ID: AT-229-5</span>
+<span class="text-[9px] font-black text-industrial-grey">ARCHIVED DATA</span>
+</div>
+<div class="relative aspect-video bg-black overflow-hidden">
+<div class="absolute inset-0 crt-scanline z-10 opacity-40"></div>
+<img class="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500 scale-110 group-hover:scale-100" data-alt="Sleek modern black sports car on a dark highway" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAOQy_V7TMfr123aM-2jujaxyLdVWG5MOON7cnUtEsZedqaPKEsNVkHqzyg4l45Yeu5hpkDnBknJtFmbfAgJsCp0YfLoajLGdVjLlJtM3PgrUhnGig0An2Try9bNmNbIasgX62msRPvLgrxXsl-XDIRBmbk7uhnttGHMHN0MTf4v6OGwQIInQ5niQHsbfsRnL2h0PI5QERcc2Nw0EBi7cJVofTHNy1w-Ao4ADzbL9XTBrEsfmv9n9AJss39PSmN94I9bo0829sFc43"/>
+<div class="absolute bottom-2 right-2 bg-black/80 px-2 py-1 text-[10px] font-mono border border-industrial-grey">31:12:00</div>
+</div>
+<div class="p-4 space-y-2">
+<p class="text-[10px] font-black text-primary tracking-[0.2em]">SAFETY WARNING</p>
+<h3 class="text-xl font-black monolithic-text tracking-tight group-hover:text-primary">HIGH REVS AHEAD: TRANSMISSION STRAIN ANALYSIS</h3>
+<div class="flex items-center justify-between pt-2 border-t border-industrial-grey/30">
+<span class="text-[10px] font-bold text-industrial-grey uppercase">Loc: Sector 7 Circuit</span>
+<span class="text-[10px] font-bold text-industrial-grey">REV. 01-30-X</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Video Card 6 -->
+<div class="group cursor-pointer">
+<div class="industrial-border bg-[#18160f] relative overflow-hidden transition-all group-hover:border-primary group-hover:shadow-[0_0_15px_rgba(205,170,76,0.3)]">
+<div class="flex justify-between items-center px-3 py-1 bg-industrial-grey/20 border-b-2 border-industrial-grey group-hover:bg-primary/20 group-hover:border-primary">
+<span class="text-[9px] font-black tracking-tighter">REF ID: AT-606-3</span>
+<span class="text-[9px] font-black text-industrial-grey">ARCHIVED DATA</span>
+</div>
+<div class="relative aspect-video bg-black overflow-hidden">
+<div class="absolute inset-0 crt-scanline z-10 opacity-40"></div>
+<img class="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500 scale-110 group-hover:scale-100" data-alt="Old rusty engine parts in a dimly lit garage" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDd7x0AY2H-z1y-WZMQrk2jd7T-BGrtPEPBzYI8S3YHwAESPwXZvg9QUvbrUyhP3lklt_me2KhTTyoeDjTYeJ1B3YR_lWsFnOZsXL-K8jPv1sg_yxW6rmYS4SDPVKqcqmz18AQ7S7A7mRyeGp8utu-WZ-aL_7I1p4W8Jp8ctGljjvLTKuJwyKboz8eUmiue9Nhg_PbdOLwhw5ciWs4NdLItKQR7EuNNMFtfzXrUDVVehBwpIHpNsMI1ZoFNEtq6IY0N44hMFaKYaAvU"/>
+<div class="absolute bottom-2 right-2 bg-black/80 px-2 py-1 text-[10px] font-mono border border-industrial-grey">19:22:55</div>
+</div>
+<div class="p-4 space-y-2">
+<p class="text-[10px] font-black text-primary tracking-[0.2em]">FIELD REPORT</p>
+<h3 class="text-xl font-black monolithic-text tracking-tight group-hover:text-primary">THE SHED DIARIES: SALVAGING 1950S GEARBOXES</h3>
+<div class="flex items-center justify-between pt-2 border-t border-industrial-grey/30">
+<span class="text-[10px] font-bold text-industrial-grey uppercase">Op: Rusty Red</span>
+<span class="text-[10px] font-bold text-industrial-grey">REV. 12-15-W</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer / Status Bar -->
+<footer class="mt-auto border-t-4 border-industrial-grey bg-[#18160f] px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="size-2 bg-green-500 rounded-full"></span>
+<span class="text-[10px] font-bold tracking-widest text-industrial-grey uppercase">System Online</span>
+</div>
+<div class="text-[10px] font-bold tracking-widest text-industrial-grey uppercase border-l-2 border-industrial-grey/30 pl-6">
+                            Broadcast Frequency: Locked
+                        </div>
+</div>
+<p class="text-[10px] font-bold text-industrial-grey/50 tracking-widest uppercase text-center md:text-right">
+                        © 1952-20XX ATOMIC TAWK MEDIA. ALL RIGHTS RESERVED. MECHANICAL COMPLIANCE MANDATORY.
+                    </p>
+</footer>
+</main>
+</div>
+</div>
+</body></html>

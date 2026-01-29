@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Atomic Tawk - Talk Loud. Drive Louder.</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#cdaa4c",
+                        "background-light": "#f8f7f6",
+                        "background-dark": "#1f1c13",
+                        "atomic-cream": "#E3E2D5",
+                        "industrial-gray": "#353535",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .halftone-overlay {
+            background-image: radial-gradient(#353535 1px, transparent 0);
+            background-size: 4px 4px;
+            opacity: 0.1;
+        }
+        .shield-badge {
+            clip-path: polygon(50% 0%, 100% 15%, 100% 70%, 50% 100%, 0% 70%, 0% 15%);
+        }
+        .industrial-border {
+            border: 3px solid #353535;
+            box-shadow: 4px 4px 0px #353535;
+        }
+        .rivet {
+            width: 8px;
+            height: 8px;
+            background: #353535;
+            border-radius: 50%;
+            position: absolute;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-industrial-gray dark:text-white min-h-screen overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 bg-background-light dark:bg-background-dark border-b-4 border-industrial-gray px-4 md:px-10 lg:px-40 py-0">
+<div class="flex items-center justify-between h-20">
+<div class="flex items-center h-full">
+<div class="flex items-center gap-3 bg-primary px-6 h-full border-r-4 border-industrial-gray">
+<span class="material-symbols-outlined text-background-dark text-3xl font-bold">dangerous</span>
+<h2 class="text-background-dark text-xl font-bold leading-none tracking-tighter uppercase">Atomic Tawk</h2>
+</div>
+<nav class="hidden lg:flex items-center h-full">
+<a class="px-6 h-full flex items-center border-r-4 border-industrial-gray hover:bg-primary/20 transition-colors text-sm font-bold uppercase tracking-widest" href="#">Burnouts</a>
+<a class="px-6 h-full flex items-center border-r-4 border-industrial-gray hover:bg-primary/20 transition-colors text-sm font-bold uppercase tracking-widest" href="#">Shed Builds</a>
+<a class="px-6 h-full flex items-center border-r-4 border-industrial-gray hover:bg-primary/20 transition-colors text-sm font-bold uppercase tracking-widest" href="#">Gaming</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex items-center bg-industrial-gray/10 dark:bg-white/10 px-3 py-1 border-2 border-industrial-gray">
+<span class="material-symbols-outlined text-industrial-gray dark:text-white text-xl">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm font-bold placeholder:text-industrial-gray/50 uppercase" placeholder="Intercept Signal..." type="text"/>
+</div>
+<button class="bg-primary text-background-dark px-6 py-2 border-2 border-industrial-gray font-black text-sm uppercase tracking-tighter shadow-[2px_2px_0px_#353535] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all">
+                    Join Radius
+                </button>
+</div>
+</div>
+</header>
+<!-- Hero Section -->
+<section class="relative bg-atomic-cream dark:bg-industrial-gray py-20 border-b-8 border-industrial-gray overflow-hidden">
+<div class="absolute inset-0 halftone-overlay"></div>
+<div class="max-w-[1200px] mx-auto px-10 relative z-10 flex flex-col items-center text-center">
+<!-- Shield Badge Logo Area -->
+<div class="shield-badge bg-primary w-48 h-56 flex items-center justify-center mb-8 border-4 border-industrial-gray shadow-xl relative">
+<div class="absolute inset-0 halftone-overlay"></div>
+<span class="material-symbols-outlined text-7xl text-background-dark font-black">settings_input_antenna</span>
+</div>
+<h1 class="text-industrial-gray dark:text-white text-6xl md:text-8xl font-black leading-[0.85] tracking-tighter uppercase mb-4 drop-shadow-md">
+                Talk Loud.<br/>Drive Louder.
+            </h1>
+<div class="bg-industrial-gray text-white px-8 py-2 mb-8 inline-block skew-x-[-12deg]">
+<h2 class="text-xl md:text-2xl font-bold italic uppercase tracking-[0.2em] skew-x-[12deg]">
+                    The Voice of the Wasteland
+                </h2>
+</div>
+<div class="flex flex-wrap justify-center gap-6">
+<button class="relative bg-primary text-background-dark px-10 py-4 font-black text-xl uppercase tracking-tighter border-4 border-industrial-gray group">
+<div class="rivet top-1 left-1"></div>
+<div class="rivet top-1 right-1"></div>
+<div class="rivet bottom-1 left-1"></div>
+<div class="rivet bottom-1 right-1"></div>
+<span class="relative z-10">Start Broadcast</span>
+</button>
+<button class="relative bg-white text-industrial-gray px-10 py-4 font-black text-xl uppercase tracking-tighter border-4 border-industrial-gray">
+<span class="relative z-10">Archive Files</span>
+</button>
+</div>
+</div>
+<!-- Decorative Gears -->
+<span class="material-symbols-outlined absolute -bottom-10 -left-10 text-[200px] opacity-10 animate-spin-slow dark:text-white">settings</span>
+<span class="material-symbols-outlined absolute -top-10 -right-10 text-[150px] opacity-10 animate-spin-slow dark:text-white" style="animation-direction: reverse;">settings</span>
+</section>
+<!-- Ticker Bar -->
+<div class="bg-industrial-gray py-3 border-b-4 border-primary overflow-hidden whitespace-nowrap">
+<div class="flex gap-20 animate-marquee items-center">
+<div class="flex items-center gap-4 text-primary font-bold uppercase tracking-widest text-sm">
+<span class="material-symbols-outlined text-sm">bolt</span> SIGNAL STRENGTH: OPTIMAL
+            </div>
+<div class="flex items-center gap-4 text-white font-bold uppercase tracking-widest text-sm">
+<span class="material-symbols-outlined text-sm">warning</span> CAUTION: HIGH OCTANE CONTENT AHEAD
+            </div>
+<div class="flex items-center gap-4 text-primary font-bold uppercase tracking-widest text-sm">
+<span class="material-symbols-outlined text-sm">construction</span> NEW BUILD LOG: THE RUST-BUCKET SPECIAL
+            </div>
+<div class="flex items-center gap-4 text-white font-bold uppercase tracking-widest text-sm">
+<span class="material-symbols-outlined text-sm">poker_chip</span> GAMING UPDATE: WASTELAND CHRONICLES V2.0
+            </div>
+</div>
+</div>
+<!-- Main Content Area -->
+<main class="max-w-[1200px] mx-auto px-6 py-16">
+<!-- Featured Propaganda Header -->
+<div class="flex items-center gap-6 mb-12">
+<h2 class="text-4xl font-black uppercase tracking-tighter bg-industrial-gray text-white px-6 py-2">Featured Propaganda</h2>
+<div class="flex-grow h-1 bg-industrial-gray"></div>
+</div>
+<!-- Propaganda Poster Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+<!-- Poster 1: Burnouts -->
+<div class="industrial-border relative group overflow-hidden bg-primary p-1">
+<div class="bg-atomic-cream p-6 h-full flex flex-col border-2 border-industrial-gray">
+<div class="absolute top-0 right-0 bg-industrial-gray text-white px-3 py-1 text-xs font-bold uppercase">Report #001</div>
+<div class="w-full aspect-[4/5] bg-industrial-gray mb-6 relative overflow-hidden">
+<img class="w-full h-full object-cover opacity-80 mix-blend-luminosity" data-alt="Classic muscle car creating smoke from tires" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfFXIha_ZbSO_CCW7DqJkb3QKFZRkYSO-8hV1KmMdJON2oSizqnwG1xdYSrQ7Wl26z52rVH91A7nnD6enL1oQ5-Ln_XIJ1GHSjx_iIdj-3j4NzgU5Wl-bVQjon6nKwCW3pGqExIVNXLzeGONnMTZtRLALs9eMyUdmZNzuHtGIwNKLH0fb1ev5EZjpFnf4arZ6RK_gnIwo0lbDHw6cCKa4L7sIPxFt6QShs4LZRaPJ1KezC4WcbBRPZtc5M2gI9wUwDB858VV7hSJwa"/>
+<div class="absolute inset-0 halftone-overlay"></div>
+</div>
+<h3 class="text-3xl font-black uppercase leading-none mb-2 text-industrial-gray">Rubber vs. Asphalt</h3>
+<p class="text-sm font-bold text-industrial-gray/70 uppercase mb-6 italic tracking-tight">Kinetic energy distribution in high-friction environments.</p>
+<div class="mt-auto">
+<button class="w-full bg-industrial-gray text-primary py-3 font-bold uppercase tracking-widest hover:bg-primary hover:text-industrial-gray transition-colors">Analyze Data</button>
+</div>
+</div>
+</div>
+<!-- Poster 2: Shed Builds -->
+<div class="industrial-border relative group overflow-hidden bg-primary p-1">
+<div class="bg-atomic-cream p-6 h-full flex flex-col border-2 border-industrial-gray">
+<div class="absolute top-0 right-0 bg-industrial-gray text-white px-3 py-1 text-xs font-bold uppercase">Bulletin #102</div>
+<div class="w-full aspect-[4/5] bg-industrial-gray mb-6 relative overflow-hidden">
+<img class="w-full h-full object-cover opacity-80 mix-blend-luminosity" data-alt="Close up of mechanical gears and wrenches" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmnnQoanfMI6EwyXFYEiqOcY-BJKOxodK1UcnFxcbEp57bucOVDhL5H9KzRbiE2PA4XgxKXsK5RyvyheBIky6XWvNHLLQ0dslr8u2pmgXFS1qV6OPZhTyS65KD6rjRMcDFtDkgdZnXsPo2cukzgYG7f4cSC7Xun0pWVyRFzBjeOVUi0y-CjJQG8jtHfcAxyMwv6kIbr-RsZnFQKATksQFsIqO4-HH7_l_qgHm5qdGvSWoz6mDyuvbVIJiEbtaJ_PCesX35m7EYRGSm"/>
+<div class="absolute inset-0 halftone-overlay"></div>
+</div>
+<h3 class="text-3xl font-black uppercase leading-none mb-2 text-industrial-gray">Citizen Engineering</h3>
+<p class="text-sm font-bold text-industrial-gray/70 uppercase mb-6 italic tracking-tight">Manual labor and technical ingenuity for the modern era.</p>
+<div class="mt-auto">
+<button class="w-full bg-industrial-gray text-primary py-3 font-bold uppercase tracking-widest hover:bg-primary hover:text-industrial-gray transition-colors">Study Blueprints</button>
+</div>
+</div>
+</div>
+<!-- Poster 3: Gaming -->
+<div class="industrial-border relative group overflow-hidden bg-primary p-1">
+<div class="bg-atomic-cream p-6 h-full flex flex-col border-2 border-industrial-gray">
+<div class="absolute top-0 right-0 bg-industrial-gray text-white px-3 py-1 text-xs font-bold uppercase">Log #2077</div>
+<div class="w-full aspect-[4/5] bg-industrial-gray mb-6 relative overflow-hidden">
+<img class="w-full h-full object-cover opacity-80 mix-blend-luminosity" data-alt="Retro computer monitor with green text" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-jWkpDeRGab1zhLq1vtXFY5lGm2SjCEZKkLBVeREGKmi8_9xpzoAbZ8Vwf4YKfIkrg3PqxZdR42c57KU-4HcQp26VXOe2Gtg_IMeHp3E_F8GIfGFFw2Mydd0YDCe7BSnqRSmyQ-WciJQri560a9_y1ppAiAbHnxAkQBXe__SxDSZegOEk3wFU1xR9GTbVQ791hurlTwWu4A9kQQlmHys2n5lAemqy19rFCGa_ww2HA3xSRoLyZ5htOBJZtt5Rrg4cdJV4qdzskKQt"/>
+<div class="absolute inset-0 halftone-overlay"></div>
+</div>
+<h3 class="text-3xl font-black uppercase leading-none mb-2 text-industrial-gray">Digital Fallout</h3>
+<p class="text-sm font-bold text-industrial-gray/70 uppercase mb-6 italic tracking-tight">Simulated survival in post-atomic landscapes.</p>
+<div class="mt-auto">
+<button class="w-full bg-industrial-gray text-primary py-3 font-bold uppercase tracking-widest hover:bg-primary hover:text-industrial-gray transition-colors">Initiate Simulation</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Latest Broadcasts Section -->
+<div class="mt-24">
+<div class="flex items-center gap-6 mb-12 flex-row-reverse">
+<h2 class="text-4xl font-black uppercase tracking-tighter bg-primary text-background-dark px-6 py-2">Latest Broadcasts</h2>
+<div class="flex-grow h-1 bg-primary"></div>
+</div>
+<div class="space-y-4">
+<!-- List Item 1 -->
+<div class="flex flex-col md:flex-row items-center border-4 border-industrial-gray bg-white dark:bg-industrial-gray/50 group hover:border-primary transition-colors">
+<div class="w-full md:w-48 aspect-video md:aspect-square bg-industrial-gray shrink-0 relative overflow-hidden">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" data-alt="Classic car profile view" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIGQDoENE-s2DYMlwZElXen2CB_gbfKV_o8g4_uouvcYGIGP6cOm7SaVBm5A7p1Eq9MZbZwugVd2ZfdnsWOGQLB0YgJkKUZ1au67SL_DF1r0ZSQDbQ5dXTASRWv1XmuowjncioQ9Oo7u3fsgZAy_bRLyRr3RyMiXIQqlSGJvAM10QdSQ38Tm3X57hDa_GP5UdOQglMyS5xpiCc_tQTe8OOi209I34G9IYp7QXPgvGyi35LXnvamgREbRIx3je-U2WMdzj5aYu5f2Jh"/>
+</div>
+<div class="p-6 flex-grow flex flex-col md:flex-row md:items-center justify-between gap-6">
+<div>
+<div class="text-xs font-bold text-primary uppercase mb-1">Entry: August 14, 1955</div>
+<h4 class="text-2xl font-black uppercase group-hover:text-primary transition-colors">The V8 Restoration: Part IV</h4>
+</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-industrial-gray dark:text-white/50">headphones</span>
+<span class="material-symbols-outlined text-industrial-gray dark:text-white/50">share</span>
+<span class="material-symbols-outlined text-industrial-gray dark:text-white/50">favorite</span>
+</div>
+</div>
+</div>
+<!-- List Item 2 -->
+<div class="flex flex-col md:flex-row items-center border-4 border-industrial-gray bg-white dark:bg-industrial-gray/50 group hover:border-primary transition-colors">
+<div class="w-full md:w-48 aspect-video md:aspect-square bg-industrial-gray shrink-0 relative overflow-hidden">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" data-alt="Retro gaming arcade cabinet" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUgLXtVcenVS_OwSeEG87aFdO7Bc3e48tRAy3F1cUOQ0v04pOxb1KYKnCBwYmav8KTiGMpG4O8NHxm4mWu61nr5ivVL4fQaWosZMkhPw64UQpdk9E_jBujttlJzvipI64PDZ2cMrmY9Lpo6TqxDGlZECZzZmaSRI-IO_9l9EhLpP0X0nd21U42V81Vo6Q2rGiinInzZTfJkh-YX5JD1x0dm78CgA1-FwLMriduHPK-_nCj3bWTlfOLb9pT1WQkcezF-OnDdENg7HHY"/>
+</div>
+<div class="p-6 flex-grow flex flex-col md:flex-row md:items-center justify-between gap-6">
+<div>
+<div class="text-xs font-bold text-primary uppercase mb-1">Entry: August 12, 1955</div>
+<h4 class="text-2xl font-black uppercase group-hover:text-primary transition-colors">Arcade Survival Tactics</h4>
+</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-industrial-gray dark:text-white/50">headphones</span>
+<span class="material-symbols-outlined text-industrial-gray dark:text-white/50">share</span>
+<span class="material-symbols-outlined text-industrial-gray dark:text-white/50">favorite</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-industrial-gray text-white py-16 border-t-8 border-primary px-10">
+<div class="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
+<div>
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary text-4xl">dangerous</span>
+<h3 class="text-2xl font-black uppercase tracking-tighter">ATOMIC TAWK</h3>
+</div>
+<p class="text-sm font-medium text-white/60 leading-relaxed uppercase tracking-wider mb-6">
+                    Transmitting from the heart of the crater since 1955. Keeping your engine humming and your radiation levels manageable.
+                </p>
+<div class="flex gap-4">
+<div class="w-10 h-10 border-2 border-white flex items-center justify-center hover:bg-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-xl">rss_feed</span>
+</div>
+<div class="w-10 h-10 border-2 border-white flex items-center justify-center hover:bg-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-xl">share</span>
+</div>
+<div class="w-10 h-10 border-2 border-white flex items-center justify-center hover:bg-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-xl">podcasts</span>
+</div>
+</div>
+</div>
+<div class="md:border-l-2 md:border-white/20 md:pl-12">
+<h4 class="text-primary font-black uppercase tracking-widest mb-6">Frequencies</h4>
+<ul class="space-y-3 text-sm font-bold uppercase tracking-widest">
+<li><a class="hover:text-primary transition-colors" href="#">88.5 FM - Burnout Radio</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">92.1 FM - The Shed Session</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">104.7 FM - Digital Static</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Archive Access</a></li>
+</ul>
+</div>
+<div class="md:border-l-2 md:border-white/20 md:pl-12">
+<h4 class="text-primary font-black uppercase tracking-widest mb-6">Safety Bulletin</h4>
+<div class="bg-background-dark p-4 border-2 border-white/20 relative">
+<div class="rivet top-1 left-1 bg-white/40"></div>
+<div class="rivet top-1 right-1 bg-white/40"></div>
+<div class="text-xs text-white/80 font-mono">
+                        STAY INFORMED. STAY SAFE. JOIN THE NEWSLETTER FOR WEEKLY EVACUATION UPDATES AND CAR TIPS.
+                    </div>
+<div class="mt-4 flex">
+<input class="bg-white/10 border-white/20 text-xs w-full focus:ring-primary focus:border-primary uppercase font-bold" placeholder="ENLIST EMAIL..." type="email"/>
+<button class="bg-primary text-background-dark px-4 font-black uppercase text-xs">JOIN</button>
+</div>
+</div>
+</div>
+</div>
+<div class="max-w-[1200px] mx-auto mt-16 pt-8 border-t-2 border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-black uppercase tracking-[0.3em] text-white/40">
+<div>Established 1955 - Rebuilt 2077</div>
+<div>All Rights Reserved - Atomic Tawk Media</div>
+<div>Authorized by the Wasteland Council</div>
+</div>
+</footer>
+<style>
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            animation: marquee 30s linear infinite;
+            display: flex;
+            width: 200%;
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 20s linear infinite;
+        }
+    </style>
+</body></html>
