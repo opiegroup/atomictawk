@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { Menu, X, Search, Radio, User, LogIn, LogOut, Shield } from "lucide-react";
+import { Menu, X, Search, Radio, User, LogIn, LogOut, Shield, ChevronDown } from "lucide-react";
 import { useAuth, useRole, getSupabaseClient } from "@/lib/supabase";
 
 // Default fallback links (used if database not available)
@@ -17,11 +17,14 @@ const defaultNavLinks = [
 ];
 
 interface NavLink {
+  id?: string;
   href: string;
   label: string;
   icon: string | null;
   open_in_new_tab?: boolean;
   requires_auth?: boolean;
+  parent_id?: string | null;
+  children?: NavLink[];
 }
 
 export function Header() {
@@ -48,13 +51,25 @@ export function Header() {
         }
 
         if (data && data.length > 0) {
-          setNavLinks(data.map((item: any) => ({
+          // Convert flat list to nested structure
+          const items: NavLink[] = data.map((item: any) => ({
+            id: item.id,
             href: item.href,
             label: item.label,
             icon: item.icon,
             open_in_new_tab: item.open_in_new_tab,
             requires_auth: item.requires_auth,
-          })));
+            parent_id: item.parent_id,
+          }));
+
+          // Build nested structure - top level items with children
+          const topLevel = items.filter(item => !item.parent_id);
+          const nested = topLevel.map(parent => ({
+            ...parent,
+            children: items.filter(child => child.parent_id === parent.id)
+          }));
+
+          setNavLinks(nested);
         }
       } catch (error) {
         console.error('Error loading menu items:', error);
@@ -98,17 +113,66 @@ export function Header() {
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex flex-grow">
           {filteredNavLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              target={link.open_in_new_tab ? "_blank" : undefined}
-              rel={link.open_in_new_tab ? "noopener noreferrer" : undefined}
-              className="px-6 xl:px-8 flex items-center gap-1 border-r-4 border-[#353535] hover:bg-white transition-colors font-bold uppercase tracking-widest text-xs text-[#353535]"
-              style={{ fontFamily: "var(--font-oswald), sans-serif" }}
-            >
-              {link.icon && <span>{link.icon}</span>}
-              {link.label}
-            </Link>
+            link.children && link.children.length > 0 ? (
+              // Dropdown Menu - entire area is hover trigger
+              <div 
+                key={link.id || link.href} 
+                className="relative group flex border-r-4 border-[#353535] hover:bg-white transition-colors"
+              >
+                <button
+                  className="px-6 xl:px-8 flex items-center gap-1 font-bold uppercase tracking-widest text-xs text-[#353535]"
+                  style={{ fontFamily: "var(--font-oswald), sans-serif" }}
+                >
+                  {link.icon && <span>{link.icon}</span>}
+                  {link.label}
+                  <ChevronDown className="w-3 h-3 ml-1 transition-transform group-hover:rotate-180" />
+                </button>
+                {/* Dropdown - shows on parent hover */}
+                <div className="absolute top-full left-0 w-48 pt-0 hidden group-hover:block z-50">
+                  {/* Invisible bridge to connect hover areas */}
+                  <div className="h-1" />
+                  <div className="bg-white border-4 border-[#353535] shadow-lg">
+                    {/* Parent link (optional) */}
+                    {link.href && link.href !== '/' && link.href !== '#' && (
+                      <Link
+                        href={link.href}
+                        className="block px-4 py-3 text-sm font-bold uppercase tracking-wide text-[#353535] hover:bg-[#CCAA4C]/20 border-b-2 border-[#353535]/20"
+                        style={{ fontFamily: "var(--font-oswald), sans-serif" }}
+                      >
+                        {link.label} Overview
+                      </Link>
+                    )}
+                    {/* Children */}
+                    {link.children.map((child) => (
+                      <Link
+                        key={child.id || child.href}
+                        href={child.href}
+                        target={child.open_in_new_tab ? "_blank" : undefined}
+                        rel={child.open_in_new_tab ? "noopener noreferrer" : undefined}
+                        className="block px-4 py-3 text-sm font-bold uppercase tracking-wide text-[#353535] hover:bg-[#CCAA4C]/20 transition-colors"
+                        style={{ fontFamily: "var(--font-oswald), sans-serif" }}
+                      >
+                        {child.icon && <span className="mr-2">{child.icon}</span>}
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Regular Link
+              <Link
+                key={link.id || link.href}
+                href={link.href}
+                target={link.open_in_new_tab ? "_blank" : undefined}
+                rel={link.open_in_new_tab ? "noopener noreferrer" : undefined}
+                className="px-6 xl:px-8 flex items-center gap-1 border-r-4 border-[#353535] hover:bg-white transition-colors font-bold uppercase tracking-widest text-xs text-[#353535]"
+                style={{ fontFamily: "var(--font-oswald), sans-serif" }}
+              >
+                {link.icon && <span>{link.icon}</span>}
+                {link.label}
+              </Link>
+            )
           ))}
         </nav>
 
@@ -228,18 +292,42 @@ export function Header() {
         <div className="lg:hidden border-t-4 border-[#353535] bg-white">
           <nav className="flex flex-col">
             {filteredNavLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                target={link.open_in_new_tab ? "_blank" : undefined}
-                rel={link.open_in_new_tab ? "noopener noreferrer" : undefined}
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-6 py-4 border-b-2 border-[#353535]/20 hover:bg-[#CCAA4C]/20 transition-colors font-bold uppercase tracking-widest text-sm flex items-center gap-2"
-                style={{ fontFamily: "var(--font-oswald), sans-serif" }}
-              >
-                {link.icon && <span>{link.icon}</span>}
-                {link.label}
-              </Link>
+              <div key={link.id || link.href}>
+                {/* Parent Link */}
+                <Link
+                  href={link.href}
+                  target={link.open_in_new_tab ? "_blank" : undefined}
+                  rel={link.open_in_new_tab ? "noopener noreferrer" : undefined}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-6 py-4 border-b-2 border-[#353535]/20 hover:bg-[#CCAA4C]/20 transition-colors font-bold uppercase tracking-widest text-sm flex items-center gap-2"
+                  style={{ fontFamily: "var(--font-oswald), sans-serif" }}
+                >
+                  {link.icon && <span>{link.icon}</span>}
+                  {link.label}
+                  {link.children && link.children.length > 0 && (
+                    <ChevronDown className="w-4 h-4 ml-auto" />
+                  )}
+                </Link>
+                {/* Child Links */}
+                {link.children && link.children.length > 0 && (
+                  <div className="bg-[#f5f5f0]">
+                    {link.children.map((child) => (
+                      <Link
+                        key={child.id || child.href}
+                        href={child.href}
+                        target={child.open_in_new_tab ? "_blank" : undefined}
+                        rel={child.open_in_new_tab ? "noopener noreferrer" : undefined}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="px-6 pl-10 py-3 border-b border-[#353535]/10 hover:bg-[#CCAA4C]/20 transition-colors font-medium uppercase tracking-widest text-xs flex items-center gap-2 text-[#353535]/80"
+                        style={{ fontFamily: "var(--font-oswald), sans-serif" }}
+                      >
+                        {child.icon && <span>{child.icon}</span>}
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
             
             {/* Mobile Auth Links */}

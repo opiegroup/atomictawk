@@ -273,15 +273,19 @@ export default function GamePage() {
     setUnlockedGames(newUnlocked);
   }, [placedItems]);
 
-  // Achievement system
+  // Achievement system - use functional update to avoid stale closure issues
   const checkAchievement = useCallback((id: string, name: string) => {
-    if (!achievements.includes(id)) {
-      setAchievements(prev => [...prev, id]);
+    setAchievements(prev => {
+      if (prev.includes(id)) {
+        return prev; // Already have this achievement, don't add duplicate
+      }
+      // Show achievement notification
       setShowAchievement(name);
       gameAudio.playSuccess();
       setTimeout(() => setShowAchievement(null), 3000);
-    }
-  }, [achievements]);
+      return [...prev, id];
+    });
+  }, []);
 
   useEffect(() => {
     if (placedItems.length === 1) checkAchievement("first_item", "First Item Placed!");

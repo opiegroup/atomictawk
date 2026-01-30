@@ -7,8 +7,10 @@ import Image from 'next/image'
 import { 
   Settings, Gamepad2, Trophy, Zap, Star, ShoppingBag, MessageSquare, 
   Users, Camera, Tag, Tv, Play, Radio, Headphones, Share2, Heart,
-  AlertTriangle, Wrench, ChevronLeft, ChevronRight
+  AlertTriangle, Wrench, ChevronLeft, ChevronRight, FileText
 } from 'lucide-react'
+import { FeaturedContent } from '@/components/FeaturedContent'
+import { LatestBroadcasts } from '@/components/LatestBroadcasts'
 
 interface BlockRendererProps {
   block: PageBlock
@@ -351,19 +353,28 @@ function AtomicHeroBlock({ block, isEditing }: { block: PageBlock; isEditing: bo
 
   const Wrapper = isEditing ? 'div' : Link
 
+  // Check if block has custom background styling (video/image/color)
+  const hasCustomBackground = block.styling?.backgroundVideo || block.styling?.backgroundImage || block.styling?.backgroundColor || block.styling?.backgroundGradient
+  const bgClass = hasCustomBackground ? 'bg-transparent' : 'bg-[#E3E2D5]'
+  
+  // Get text color from styling or default
+  const textColor = block.styling?.textColor || '#353535'
+  const isLightText = textColor === '#FFFFFF' || textColor === '#ffffff' || textColor === 'white' || textColor === '#E3E2D5'
+
   return (
-    <section className="relative bg-[#E3E2D5] py-16 md:py-24 border-b-8 border-[#353535] overflow-hidden">
-      <div className="absolute inset-0 halftone-overlay"></div>
+    <section className={`relative ${bgClass} py-16 md:py-24 border-b-8 border-[#353535] overflow-hidden`}>
+      {!hasCustomBackground && <div className="absolute inset-0 halftone-overlay"></div>}
       
       {/* Decorative Gears */}
       {showDecorativeGears && (
         <>
           <Settings 
-            className="absolute -bottom-10 -left-10 w-[200px] h-[200px] opacity-10 animate-spin-slow text-[#353535]" 
+            className="absolute -bottom-10 -left-10 w-[200px] h-[200px] opacity-10 animate-spin-slow" 
+            style={{ color: textColor }}
           />
           <Settings 
-            className="absolute -top-10 -right-10 w-[150px] h-[150px] opacity-10 animate-spin-slow text-[#353535]" 
-            style={{ animationDirection: "reverse" }}
+            className="absolute -top-10 -right-10 w-[150px] h-[150px] opacity-10 animate-spin-slow" 
+            style={{ animationDirection: "reverse", color: textColor }}
           />
         </>
       )}
@@ -382,17 +393,20 @@ function AtomicHeroBlock({ block, isEditing }: { block: PageBlock; isEditing: bo
 
         {/* Main Headline */}
         <h1 
-          className="text-[#353535] text-5xl md:text-7xl lg:text-8xl font-black leading-[0.85] tracking-tighter uppercase mb-4 drop-shadow-md whitespace-pre-line"
-          style={{ fontFamily: "var(--font-oswald), sans-serif" }}
+          className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.85] tracking-tighter uppercase mb-4 drop-shadow-md whitespace-pre-line"
+          style={{ fontFamily: "var(--font-oswald), sans-serif", color: textColor }}
         >
           {headline}
         </h1>
 
         {/* Subtitle */}
-        <div className="bg-[#353535] text-white px-8 py-2 mb-8 inline-block skew-x-[-12deg]">
+        <div 
+          className="px-8 py-2 mb-8 inline-block skew-x-[-12deg]"
+          style={{ backgroundColor: isLightText ? '#353535' : textColor }}
+        >
           <h2 
             className="text-lg md:text-2xl font-bold italic uppercase tracking-[0.2em] skew-x-[12deg]"
-            style={{ fontFamily: "var(--font-oswald), sans-serif" }}
+            style={{ fontFamily: "var(--font-oswald), sans-serif", color: isLightText ? 'white' : '#E3E2D5' }}
           >
             {subheadline}
           </h2>
@@ -402,22 +416,36 @@ function AtomicHeroBlock({ block, isEditing }: { block: PageBlock; isEditing: bo
         <div className="flex flex-wrap justify-center gap-6">
           {primaryButtonText && (
             isEditing ? (
-              <span className="px-8 py-4 bg-[#CCAA4C] text-[#353535] font-bold uppercase tracking-widest border-4 border-[#353535]">
+              <span 
+                className="px-8 py-4 bg-[#CCAA4C] font-bold uppercase tracking-widest border-4"
+                style={{ borderColor: isLightText ? 'white' : '#353535', color: '#353535' }}
+              >
                 {primaryButtonText}
               </span>
             ) : (
-              <Link href={primaryButtonLink || '#'} className="px-8 py-4 bg-[#CCAA4C] text-[#353535] font-bold uppercase tracking-widest border-4 border-[#353535] hover:bg-[#FF6B35] hover:text-white transition-colors">
+              <Link 
+                href={primaryButtonLink || '#'} 
+                className="px-8 py-4 bg-[#CCAA4C] font-bold uppercase tracking-widest border-4 hover:bg-[#FF6B35] hover:text-white transition-colors"
+                style={{ borderColor: isLightText ? 'white' : '#353535', color: '#353535' }}
+              >
                 {primaryButtonText}
               </Link>
             )
           )}
           {secondaryButtonText && (
             isEditing ? (
-              <span className="px-8 py-4 bg-transparent text-[#353535] font-bold uppercase tracking-widest border-4 border-[#353535]">
+              <span 
+                className="px-8 py-4 bg-transparent font-bold uppercase tracking-widest border-4"
+                style={{ borderColor: isLightText ? 'white' : '#353535', color: textColor }}
+              >
                 {secondaryButtonText}
               </span>
             ) : (
-              <Link href={secondaryButtonLink || '#'} className="px-8 py-4 bg-transparent text-[#353535] font-bold uppercase tracking-widest border-4 border-[#353535] hover:bg-[#353535] hover:text-white transition-colors">
+              <Link 
+                href={secondaryButtonLink || '#'} 
+                className="px-8 py-4 bg-transparent font-bold uppercase tracking-widest border-4 hover:bg-opacity-20 transition-colors"
+                style={{ borderColor: isLightText ? 'white' : '#353535', color: textColor }}
+              >
                 {secondaryButtonText}
               </Link>
             )
@@ -624,9 +652,20 @@ function AtomicTVBannerBlock({ block, isEditing }: { block: PageBlock; isEditing
   )
 }
 
-// PROPAGANDA GRID
+// PROPAGANDA GRID - Uses FeaturedContent component for live data
 function PropagandaGridBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
-  const { heading, posters, columns } = block.props
+  const { heading, posters, columns, useDatabaseContent, maxItems } = block.props
+
+  // If using database content and not editing, render the dynamic component
+  if (useDatabaseContent && !isEditing) {
+    return (
+      <FeaturedContent
+        heading={heading || 'Featured Propaganda'}
+        maxItems={maxItems || 3}
+        showHeading={true}
+      />
+    )
+  }
 
   return (
     <section className="max-w-[1200px] mx-auto px-6 py-16">
@@ -641,15 +680,23 @@ function PropagandaGridBlock({ block, isEditing }: { block: PageBlock; isEditing
         <div className="flex-grow h-1 bg-[#353535]"></div>
       </div>
 
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${columns || 3} gap-10`}>
-        {(posters || []).map((poster: any) => (
-          <PosterCard 
-            key={poster.id}
-            poster={poster}
-            isEditing={isEditing}
-          />
-        ))}
-      </div>
+      {useDatabaseContent && isEditing ? (
+        <div className="border-2 border-dashed border-[#CCAA4C]/50 rounded-lg p-8 text-center">
+          <FileText className="w-12 h-12 mx-auto mb-4 text-[#CCAA4C]" />
+          <p className="text-[#353535] font-bold">Dynamic Content Enabled</p>
+          <p className="text-sm text-[#353535]/60">Will show {maxItems || 3} featured items from database</p>
+        </div>
+      ) : (
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${columns || 3} gap-10`}>
+          {(posters || []).map((poster: any) => (
+            <PosterCard 
+              key={poster.id}
+              poster={poster}
+              isEditing={isEditing}
+            />
+          ))}
+        </div>
+      )}
     </section>
   )
 }
@@ -706,9 +753,24 @@ function PosterCard({ poster, isEditing }: { poster: any; isEditing: boolean }) 
   )
 }
 
-// BLOKE SCIENCE SLIDER
+// BLOKE SCIENCE SLIDER - Default facts if not provided
+const DEFAULT_BLOKE_SCIENCE_FACTS = [
+  { id: '1', title: 'The First V8 Engine', fact: 'The first V8 engine was patented in 1902 by Léon Levavasseur.' },
+  { id: '2', title: 'Burnout Physics', fact: 'A proper burnout can heat tyre rubber to over 200°C (392°F).' },
+  { id: '3', title: 'The 10mm Socket Curse', fact: 'The average mechanic loses 3-5 10mm sockets per year.' },
+  { id: '4', title: 'Shed Acoustics', fact: 'The optimal shed size for acoustic privacy is 4x3 metres.' },
+  { id: '5', title: 'Beer Fridge Efficiency', fact: 'A dedicated beer fridge reaches optimal temperature 23% faster.' },
+  { id: '6', title: 'Torque vs Horsepower', fact: 'Horsepower is how fast you hit the wall. Torque is how far you take the wall with you.' },
+  { id: '7', title: 'The WD-40 Principle', fact: 'If it moves and shouldn\'t: duct tape. If it doesn\'t move and should: WD-40.' },
+  { id: '8', title: 'Man Cave Temperature', fact: 'The ideal man cave temperature is 22°C - scientifically optimized since 1973.' },
+  { id: '9', title: 'Tool Organization', fact: 'Installing a pegboard reduces tool-hunting from 2.3 hours to 47 minutes per week.' },
+  { id: '10', title: 'Exhaust Note Science', fact: 'V8 exhaust notes between 80-120Hz trigger the same brain response as a perfect steak.' },
+]
+
 function BlokeScienceSliderBlock({ block }: { block: PageBlock }) {
-  const { heading, facts, autoPlay, interval } = block.props
+  const { heading, autoPlay, interval } = block.props
+  // Use default facts if none provided or less than 10
+  const facts = block.props.facts?.length >= 10 ? block.props.facts : DEFAULT_BLOKE_SCIENCE_FACTS
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAutoPlaying, setIsAutoPlaying] = useState(autoPlay ?? true)
 
@@ -758,24 +820,9 @@ function BlokeScienceSliderBlock({ block }: { block: PageBlock }) {
         </div>
 
         {/* Slider */}
-        <div className="relative overflow-hidden">
-          {/* Navigation Buttons */}
-          <button
-            onClick={goToPrevious}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-[#CCAA4C] hover:bg-[#FF6B35] text-[#353535] hover:text-white flex items-center justify-center transition-colors"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          
-          <button
-            onClick={goToNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-[#CCAA4C] hover:bg-[#FF6B35] text-[#353535] hover:text-white flex items-center justify-center transition-colors"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
-
-          {/* Cards Container */}
-          <div className="flex justify-center items-center gap-6 py-4 px-16">
+        <div className="relative">
+          {/* Cards Container - with padding for buttons */}
+          <div className="flex justify-center items-center gap-6 py-4 px-20 md:px-24 overflow-hidden">
             {getVisibleIndices().map((factIndex, position) => {
               const fact = facts?.[factIndex]
               if (!fact) return null
@@ -787,7 +834,7 @@ function BlokeScienceSliderBlock({ block }: { block: PageBlock }) {
                   className={`
                     industrial-border bg-[#E3E2D5] p-6 md:p-8 relative transition-all duration-500 ease-out
                     ${isCenter ? 'scale-100 opacity-100 z-10' : 'scale-90 opacity-60 z-0'}
-                    w-full max-w-md shrink-0
+                    w-full max-w-sm shrink-0
                   `}
                 >
                   <div className="absolute top-4 right-4 stamp text-xs">Did You Know?</div>
@@ -807,6 +854,21 @@ function BlokeScienceSliderBlock({ block }: { block: PageBlock }) {
               )
             })}
           </div>
+
+          {/* Navigation Buttons - positioned at edges, outside cards */}
+          <button
+            onClick={goToPrevious}
+            className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 bg-[#CCAA4C] hover:bg-[#FF6B35] text-[#353535] hover:text-white flex items-center justify-center transition-colors shadow-lg"
+          >
+            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+          </button>
+          
+          <button
+            onClick={goToNext}
+            className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 bg-[#CCAA4C] hover:bg-[#FF6B35] text-[#353535] hover:text-white flex items-center justify-center transition-colors shadow-lg"
+          >
+            <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+          </button>
 
           {/* Progress Dots */}
           <div className="flex justify-center gap-2 mt-6">
@@ -831,10 +893,26 @@ function BlokeScienceSliderBlock({ block }: { block: PageBlock }) {
   )
 }
 
-// BROADCAST LIST
+// BROADCAST LIST - Uses LatestBroadcasts component for live data
 function BroadcastListBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
-  const { heading, headingVariant, broadcasts, showViewAllButton, viewAllLink, viewAllText } = block.props
+  const { heading, headingVariant, broadcasts, showViewAllButton, viewAllLink, viewAllText, useDatabaseContent, maxItems, variant } = block.props
 
+  // If using database content and not editing, render the dynamic component
+  if (useDatabaseContent && !isEditing) {
+    return (
+      <LatestBroadcasts
+        heading={heading}
+        headingVariant={headingVariant}
+        maxItems={maxItems || 5}
+        showViewAllButton={showViewAllButton}
+        viewAllLink={viewAllLink}
+        viewAllText={viewAllText}
+        variant={variant || 'list'}
+      />
+    )
+  }
+
+  // Static/editing mode - show manual broadcasts
   return (
     <section className="max-w-[1200px] mx-auto px-6 py-16">
       {/* Section Heading */}
@@ -848,52 +926,63 @@ function BroadcastListBlock({ block, isEditing }: { block: PageBlock; isEditing:
         <div className="flex-grow h-1 bg-[#353535]"></div>
       </div>
 
-      <div className="space-y-4">
-        {(broadcasts || []).map((item: any) => {
-          const content = (
-            <div className="flex flex-col md:flex-row items-center border-4 border-[#353535] bg-white group hover:border-[#CCAA4C] transition-colors">
-              <div className="w-full md:w-48 aspect-video md:aspect-square bg-[#353535] shrink-0 relative overflow-hidden">
-                {item.thumbnailUrl ? (
-                  <Image
-                    src={item.thumbnailUrl}
-                    alt={item.title}
-                    fill
-                    className="object-cover grayscale group-hover:grayscale-0 transition-all"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[#CCAA4C]">
-                    <Radio className="w-12 h-12" />
-                  </div>
-                )}
-              </div>
-              <div className="p-6 flex-grow flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
-                <div>
-                  <div className="text-xs font-bold text-[#CCAA4C] uppercase mb-1">
-                    Entry: {item.date}
-                  </div>
-                  <h4 
-                    className="text-xl md:text-2xl font-black uppercase group-hover:text-[#CCAA4C] transition-colors"
-                    style={{ fontFamily: "var(--font-oswald), sans-serif" }}
-                  >
-                    {item.title}
-                  </h4>
+      {useDatabaseContent && isEditing ? (
+        <div className="border-2 border-dashed border-[#CCAA4C]/50 rounded-lg p-8 text-center">
+          <Radio className="w-12 h-12 mx-auto mb-4 text-[#CCAA4C]" />
+          <p className="text-[#353535] font-bold">Dynamic Content Enabled</p>
+          <p className="text-sm text-[#353535]/60">Will show {maxItems || 5} latest broadcasts from database</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {(broadcasts || []).map((item: any) => {
+            const content = (
+              <div className="flex flex-col md:flex-row items-center border-4 border-[#353535] bg-white group hover:border-[#CCAA4C] transition-colors">
+                <div className="w-full md:w-48 aspect-video md:aspect-square bg-[#353535] shrink-0 relative overflow-hidden">
+                  {item.thumbnailUrl ? (
+                    <Image
+                      src={item.thumbnailUrl}
+                      alt={item.title}
+                      fill
+                      className="object-cover grayscale group-hover:grayscale-0 transition-all"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[#CCAA4C]">
+                      <Radio className="w-12 h-12" />
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-4 text-[#353535]/50">
-                  <Headphones className="w-5 h-5 hover:text-[#CCAA4C] cursor-pointer" />
-                  <Share2 className="w-5 h-5 hover:text-[#CCAA4C] cursor-pointer" />
-                  <Heart className="w-5 h-5 hover:text-[#CCAA4C] cursor-pointer" />
+                <div className="p-6 flex-grow flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
+                  <div>
+                    <div className="text-xs font-bold text-[#CCAA4C] uppercase mb-1">
+                      Entry: {item.date}
+                    </div>
+                    <h4 
+                      className="text-xl md:text-2xl font-black uppercase group-hover:text-[#CCAA4C] transition-colors"
+                      style={{ fontFamily: "var(--font-oswald), sans-serif" }}
+                    >
+                      {item.title}
+                    </h4>
+                    {item.description && (
+                      <p className="text-sm text-[#353535]/70 mt-1 line-clamp-1">{item.description}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-4 text-[#353535]/50">
+                    <Headphones className="w-5 h-5 hover:text-[#CCAA4C] cursor-pointer" />
+                    <Share2 className="w-5 h-5 hover:text-[#CCAA4C] cursor-pointer" />
+                    <Heart className="w-5 h-5 hover:text-[#CCAA4C] cursor-pointer" />
+                  </div>
                 </div>
               </div>
-            </div>
-          )
+            )
 
-          return isEditing ? (
-            <div key={item.id}>{content}</div>
-          ) : (
-            <Link href={item.link || '/shows'} key={item.id}>{content}</Link>
-          )
-        })}
-      </div>
+            return isEditing ? (
+              <div key={item.id}>{content}</div>
+            ) : (
+              <Link href={item.link || '/shows'} key={item.id}>{content}</Link>
+            )
+          })}
+        </div>
+      )}
 
       {/* View All Button */}
       {showViewAllButton && (

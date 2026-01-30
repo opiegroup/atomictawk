@@ -1,12 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Settings, Headphones, Share2, Heart, Gamepad2, Trophy, Zap, Star, ShoppingBag, MessageSquare, Users, Camera, Tag, Tv, Play, Radio } from "lucide-react";
+import { Settings, Gamepad2, Trophy, Zap, Star, ShoppingBag, MessageSquare, Users, Camera, Tag, Tv, Play, Radio } from "lucide-react";
 import { Button } from "@/components/ui";
-import { PosterCard } from "@/components/PosterCard";
 import { ContentCard } from "@/components/ContentCard";
 import { TickerBar } from "@/components/TickerBar";
 import { SectionHeading } from "@/components/SectionHeading";
 import { BlokeScienceSlider } from "@/components/BlokeScienceSlider";
+import { LatestBroadcasts } from "@/components/LatestBroadcasts";
+import { FeaturedContent } from "@/components/FeaturedContent";
 import { PageRenderer } from "@/components/pageBuilder";
 import { createClient } from "@/lib/supabase/server";
 import { PageLayout } from "@/lib/pageBuilder";
@@ -410,37 +411,12 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured Propaganda Section */}
-      <section className="max-w-[1200px] mx-auto px-6 py-16">
-        <SectionHeading title="Featured Propaganda" />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          <PosterCard
-            title="Rubber vs. Asphalt"
-            description="Kinetic energy distribution in high-friction environments."
-            thumbnailUrl={placeholderImages.burnout}
-            href="/shows/burnouts"
-            reportNumber="Report #001"
-            buttonText="Analyze Data"
-          />
-          <PosterCard
-            title="Citizen Engineering"
-            description="Manual labor and technical ingenuity for the modern era."
-            thumbnailUrl={placeholderImages.shed}
-            href="/shows/shed"
-            reportNumber="Bulletin #102"
-            buttonText="Study Blueprints"
-          />
-          <PosterCard
-            title="Digital Fallout"
-            description="Simulated survival in post-atomic landscapes."
-            thumbnailUrl={placeholderImages.gaming}
-            href="/shows/gaming"
-            reportNumber="Log #2077"
-            buttonText="Initiate Simulation"
-          />
-        </div>
-      </section>
+      {/* Featured Propaganda Section - Dynamic from Database */}
+      <FeaturedContent 
+        heading="Featured Propaganda"
+        headingVariant="left"
+        maxItems={3}
+      />
 
       {/* Bloke Science - Animated Slider */}
       <section className="bg-[#353535] py-16 border-y-8 border-[#CCAA4C]">
@@ -450,73 +426,16 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Latest Broadcasts Section */}
-      <section className="max-w-[1200px] mx-auto px-6 py-16">
-        <SectionHeading title="Latest Broadcasts" variant="right" dark />
-
-        <div className="space-y-4">
-          {/* Broadcast List Items */}
-          {[
-            {
-              title: "The V8 Restoration: Part IV",
-              date: "August 14, 2077",
-              thumbnail: placeholderImages.car1,
-            },
-            {
-              title: "Arcade Survival Tactics",
-              date: "August 12, 2077",
-              thumbnail: placeholderImages.gaming,
-            },
-            {
-              title: "Shed Build: The Rust-Bucket Special",
-              date: "August 10, 2077",
-              thumbnail: placeholderImages.engine,
-            },
-          ].map((item, index) => (
-            <Link 
-              href="/shows" 
-              key={index}
-              className="flex flex-col md:flex-row items-center border-4 border-[#353535] bg-white group hover:border-[#CCAA4C] transition-colors"
-            >
-              <div className="w-full md:w-48 aspect-video md:aspect-square bg-[#353535] shrink-0 relative overflow-hidden">
-                <Image
-                  src={item.thumbnail}
-                  alt={item.title}
-                  fill
-                  className="object-cover grayscale group-hover:grayscale-0 transition-all"
-                />
-              </div>
-              <div className="p-6 flex-grow flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
-                <div>
-                  <div className="text-xs font-bold text-[#CCAA4C] uppercase mb-1">
-                    Entry: {item.date}
-                  </div>
-                  <h4 
-                    className="text-xl md:text-2xl font-black uppercase group-hover:text-[#CCAA4C] transition-colors"
-                    style={{ fontFamily: "var(--font-oswald), sans-serif" }}
-                  >
-                    {item.title}
-                  </h4>
-                </div>
-                <div className="flex gap-4 text-[#353535]/50">
-                  <Headphones className="w-5 h-5 hover:text-[#CCAA4C] cursor-pointer" />
-                  <Share2 className="w-5 h-5 hover:text-[#CCAA4C] cursor-pointer" />
-                  <Heart className="w-5 h-5 hover:text-[#CCAA4C] cursor-pointer" />
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* View All Button */}
-        <div className="text-center mt-12">
-          <Link href="/shows">
-            <Button variant="secondary" size="lg">
-              Access Full Archive
-            </Button>
-          </Link>
-        </div>
-      </section>
+      {/* Latest Broadcasts Section - Dynamic from Database */}
+      <LatestBroadcasts 
+        heading="Latest Broadcasts"
+        headingVariant="right"
+        maxItems={5}
+        showViewAllButton={true}
+        viewAllLink="/shows"
+        viewAllText="Access Full Archive"
+        variant="list"
+      />
 
       {/* Category Quick Links */}
       <section className="bg-[#1f1c13] py-16 border-t-8 border-[#CCAA4C]">

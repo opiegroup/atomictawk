@@ -467,80 +467,107 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
               ]}
               onChange={(v) => updateProp('columns', parseInt(v))}
             />
-            <div className="flex items-center justify-between mt-4">
-              <label className="text-xs font-bold uppercase tracking-wide text-[#888]">
-                Posters ({(block.props.posters || []).length})
-              </label>
-              <button
-                onClick={() => {
-                  const newPoster = { 
-                    id: `poster_${Date.now()}`, 
-                    title: 'New Poster', 
-                    description: 'Poster description...', 
-                    imageUrl: '',
-                    link: '/',
-                    reportNumber: `Report #${(block.props.posters?.length || 0) + 1}`,
-                    buttonText: 'View'
-                  }
-                  updateProp('posters', [...(block.props.posters || []), newPoster])
-                }}
-                className="text-xs text-[#CCAA4C] hover:text-white font-bold uppercase"
-              >
-                + Add Poster
-              </button>
+            
+            {/* Dynamic Content Toggle */}
+            <div className="p-3 bg-[#1a1a1a] border border-[#CCAA4C]/30 rounded mt-4">
+              <ToggleField
+                label="🔄 Use Database Content"
+                value={block.props.useDatabaseContent ?? false}
+                onChange={(v) => updateProp('useDatabaseContent', v)}
+              />
+              <p className="text-[10px] text-[#666] mt-1">
+                Automatically shows featured content from the content manager
+              </p>
             </div>
-            {(block.props.posters || []).map((poster: any, i: number) => (
-              <div key={poster.id} className="p-3 bg-[#1a1a1a] border border-[#353535] rounded space-y-2 mb-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-[#CCAA4C] text-xs font-bold">Poster #{i + 1}</span>
+            
+            {block.props.useDatabaseContent && (
+              <TextField
+                label="Max Items"
+                value={String(block.props.maxItems || 3)}
+                onChange={(v) => updateProp('maxItems', parseInt(v) || 3)}
+                placeholder="3"
+              />
+            )}
+            
+            {/* Manual posters only shown when not using database */}
+            {!block.props.useDatabaseContent && (
+              <>
+                <div className="flex items-center justify-between mt-4">
+                  <label className="text-xs font-bold uppercase tracking-wide text-[#888]">
+                    Manual Posters ({(block.props.posters || []).length})
+                  </label>
                   <button
                     onClick={() => {
-                      const newPosters = block.props.posters.filter((_: any, idx: number) => idx !== i)
-                      updateProp('posters', newPosters)
+                      const newPoster = { 
+                        id: `poster_${Date.now()}`, 
+                        title: 'New Poster', 
+                        description: 'Poster description...', 
+                        imageUrl: '',
+                        link: '/',
+                        reportNumber: `Report #${(block.props.posters?.length || 0) + 1}`,
+                        buttonText: 'View'
+                      }
+                      updateProp('posters', [...(block.props.posters || []), newPoster])
                     }}
-                    className="text-xs text-red-400 hover:text-red-300"
+                    className="text-xs text-[#CCAA4C] hover:text-white font-bold uppercase"
                   >
-                    Remove
+                    + Add Poster
                   </button>
                 </div>
-                <TextField
-                  label="Title"
-                  value={poster.title || ''}
-                  onChange={(v) => updateArrayItem('posters', i, { title: v })}
-                />
-                <TextField
-                  label="Description"
-                  value={poster.description || ''}
-                  onChange={(v) => updateArrayItem('posters', i, { description: v })}
-                />
-                <TextField
-                  label="Image URL"
-                  value={poster.imageUrl || ''}
-                  onChange={(v) => updateArrayItem('posters', i, { imageUrl: v })}
-                  placeholder="https://..."
-                />
-                <TextField
-                  label="Link"
-                  value={poster.link || ''}
-                  onChange={(v) => updateArrayItem('posters', i, { link: v })}
-                  placeholder="/shows/..."
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <TextField
-                    label="Report #"
-                    value={poster.reportNumber || ''}
-                    onChange={(v) => updateArrayItem('posters', i, { reportNumber: v })}
-                    placeholder="Report #001"
-                  />
-                  <TextField
-                    label="Button"
-                    value={poster.buttonText || ''}
-                    onChange={(v) => updateArrayItem('posters', i, { buttonText: v })}
-                    placeholder="Analyze Data"
-                  />
-                </div>
-              </div>
-            ))}
+                {(block.props.posters || []).map((poster: any, i: number) => (
+                  <div key={poster.id} className="p-3 bg-[#1a1a1a] border border-[#353535] rounded space-y-2 mb-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#CCAA4C] text-xs font-bold">Poster #{i + 1}</span>
+                      <button
+                        onClick={() => {
+                          const newPosters = block.props.posters.filter((_: any, idx: number) => idx !== i)
+                          updateProp('posters', newPosters)
+                        }}
+                        className="text-xs text-red-400 hover:text-red-300"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <TextField
+                      label="Title"
+                      value={poster.title || ''}
+                      onChange={(v) => updateArrayItem('posters', i, { title: v })}
+                    />
+                    <TextField
+                      label="Description"
+                      value={poster.description || ''}
+                      onChange={(v) => updateArrayItem('posters', i, { description: v })}
+                    />
+                    <TextField
+                      label="Image URL"
+                      value={poster.imageUrl || ''}
+                      onChange={(v) => updateArrayItem('posters', i, { imageUrl: v })}
+                      placeholder="https://..."
+                    />
+                    <TextField
+                      label="Link"
+                      value={poster.link || ''}
+                      onChange={(v) => updateArrayItem('posters', i, { link: v })}
+                      placeholder="/shows/..."
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <TextField
+                        label="Report #"
+                        value={poster.reportNumber || ''}
+                        onChange={(v) => updateArrayItem('posters', i, { reportNumber: v })}
+                        placeholder="Report #001"
+                      />
+                      <TextField
+                        label="Button"
+                        value={poster.buttonText || ''}
+                        onChange={(v) => updateArrayItem('posters', i, { buttonText: v })}
+                        placeholder="Analyze Data"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </>
         )
 
@@ -628,6 +655,40 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
               ]}
               onChange={(v) => updateProp('headingVariant', v)}
             />
+            
+            {/* Dynamic Content Toggle */}
+            <div className="p-3 bg-[#1a1a1a] border border-[#CCAA4C]/30 rounded mt-4">
+              <ToggleField
+                label="🔄 Use Database Content"
+                value={block.props.useDatabaseContent ?? false}
+                onChange={(v) => updateProp('useDatabaseContent', v)}
+              />
+              <p className="text-[10px] text-[#666] mt-1">
+                Automatically shows latest broadcasts from the content manager
+              </p>
+            </div>
+            
+            {block.props.useDatabaseContent && (
+              <>
+                <TextField
+                  label="Max Items"
+                  value={String(block.props.maxItems || 5)}
+                  onChange={(v) => updateProp('maxItems', parseInt(v) || 5)}
+                  placeholder="5"
+                />
+                <SelectField
+                  label="Display Variant"
+                  value={block.props.variant || 'list'}
+                  options={[
+                    { value: 'list', label: 'List (with description)' },
+                    { value: 'grid', label: 'Grid Cards' },
+                    { value: 'compact', label: 'Compact List' },
+                  ]}
+                  onChange={(v) => updateProp('variant', v)}
+                />
+              </>
+            )}
+            
             <ToggleField
               label="Show View All Button"
               value={block.props.showViewAllButton ?? true}
@@ -649,64 +710,77 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
                 />
               </div>
             )}
-            <div className="flex items-center justify-between mt-4">
-              <label className="text-xs font-bold uppercase tracking-wide text-[#888]">
-                Broadcasts ({(block.props.broadcasts || []).length})
-              </label>
-              <button
-                onClick={() => {
-                  const newBroadcast = { 
-                    id: `broadcast_${Date.now()}`, 
-                    title: 'New Broadcast', 
-                    date: new Date().toLocaleDateString(),
-                    thumbnailUrl: '',
-                    link: '/shows'
-                  }
-                  updateProp('broadcasts', [...(block.props.broadcasts || []), newBroadcast])
-                }}
-                className="text-xs text-[#CCAA4C] hover:text-white font-bold uppercase"
-              >
-                + Add Broadcast
-              </button>
-            </div>
-            {(block.props.broadcasts || []).map((item: any, i: number) => (
-              <div key={item.id} className="p-3 bg-[#1a1a1a] border border-[#353535] rounded space-y-2 mb-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-[#CCAA4C] text-xs font-bold">Broadcast #{i + 1}</span>
+            
+            {/* Manual broadcasts only shown when not using database */}
+            {!block.props.useDatabaseContent && (
+              <>
+                <div className="flex items-center justify-between mt-4">
+                  <label className="text-xs font-bold uppercase tracking-wide text-[#888]">
+                    Manual Broadcasts ({(block.props.broadcasts || []).length})
+                  </label>
                   <button
                     onClick={() => {
-                      const newBroadcasts = block.props.broadcasts.filter((_: any, idx: number) => idx !== i)
-                      updateProp('broadcasts', newBroadcasts)
+                      const newBroadcast = { 
+                        id: `broadcast_${Date.now()}`, 
+                        title: 'New Broadcast', 
+                        date: new Date().toLocaleDateString(),
+                        thumbnailUrl: '',
+                        description: '',
+                        link: '/shows'
+                      }
+                      updateProp('broadcasts', [...(block.props.broadcasts || []), newBroadcast])
                     }}
-                    className="text-xs text-red-400 hover:text-red-300"
+                    className="text-xs text-[#CCAA4C] hover:text-white font-bold uppercase"
                   >
-                    Remove
+                    + Add Broadcast
                   </button>
                 </div>
-                <TextField
-                  label="Title"
-                  value={item.title || ''}
-                  onChange={(v) => updateArrayItem('broadcasts', i, { title: v })}
-                />
-                <TextField
-                  label="Date"
-                  value={item.date || ''}
-                  onChange={(v) => updateArrayItem('broadcasts', i, { date: v })}
-                  placeholder="August 14, 2077"
-                />
-                <TextField
-                  label="Thumbnail URL"
-                  value={item.thumbnailUrl || ''}
-                  onChange={(v) => updateArrayItem('broadcasts', i, { thumbnailUrl: v })}
-                />
-                <TextField
-                  label="Link"
-                  value={item.link || ''}
-                  onChange={(v) => updateArrayItem('broadcasts', i, { link: v })}
-                  placeholder="/shows"
-                />
-              </div>
-            ))}
+                {(block.props.broadcasts || []).map((item: any, i: number) => (
+                  <div key={item.id} className="p-3 bg-[#1a1a1a] border border-[#353535] rounded space-y-2 mb-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#CCAA4C] text-xs font-bold">Broadcast #{i + 1}</span>
+                      <button
+                        onClick={() => {
+                          const newBroadcasts = block.props.broadcasts.filter((_: any, idx: number) => idx !== i)
+                          updateProp('broadcasts', newBroadcasts)
+                        }}
+                        className="text-xs text-red-400 hover:text-red-300"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <TextField
+                      label="Title"
+                      value={item.title || ''}
+                      onChange={(v) => updateArrayItem('broadcasts', i, { title: v })}
+                    />
+                    <TextField
+                      label="Description"
+                      value={item.description || ''}
+                      onChange={(v) => updateArrayItem('broadcasts', i, { description: v })}
+                      placeholder="Brief intro paragraph..."
+                    />
+                    <TextField
+                      label="Date"
+                      value={item.date || ''}
+                      onChange={(v) => updateArrayItem('broadcasts', i, { date: v })}
+                      placeholder="August 14, 2077"
+                    />
+                    <TextField
+                      label="Thumbnail URL"
+                      value={item.thumbnailUrl || ''}
+                      onChange={(v) => updateArrayItem('broadcasts', i, { thumbnailUrl: v })}
+                    />
+                    <TextField
+                      label="Link"
+                      value={item.link || ''}
+                      onChange={(v) => updateArrayItem('broadcasts', i, { link: v })}
+                      placeholder="/shows"
+                    />
+                  </div>
+                ))}
+              </>
+            )}
           </>
         )
 

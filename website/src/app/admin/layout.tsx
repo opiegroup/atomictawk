@@ -27,6 +27,7 @@ const navItems = [
   { href: "/admin/pages", label: "Page Builder", icon: Layout, roles: ["god", "admin"] },
   { href: "/admin/menu", label: "Menu", icon: Menu, roles: ["god", "admin"] },
   { href: "/admin/content", label: "Content", icon: FileText, roles: ["god", "admin"] },
+  { href: "/admin/comments", label: "Comments", icon: MessageSquare, roles: ["god", "admin"] },
   { href: "/admin/products", label: "Products", icon: ShoppingBag, roles: ["god", "admin"] },
   { href: "/admin/community", label: "Community", icon: MessageSquare, roles: ["god", "admin"] },
   { href: "/admin/leads", label: "Leads", icon: Target, roles: ["god", "sales"] },

@@ -1,7 +1,8 @@
 'use client'
 
-import { PageLayout } from '@/lib/pageBuilder'
+import { PageLayout, PageBlock } from '@/lib/pageBuilder'
 import { BlockRenderer } from './BlockRenderer'
+import { FeaturedContent } from '@/components/FeaturedContent'
 
 interface PageRendererProps {
   layout: PageLayout
@@ -12,6 +13,7 @@ export function PageRenderer({ layout }: PageRendererProps) {
 
   // Sort blocks by order
   const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order)
+  
 
   // Background texture classes
   const textureClasses: Record<string, string> = {
@@ -26,15 +28,32 @@ export function PageRenderer({ layout }: PageRendererProps) {
     ? 'bg-[#E3E2D5] text-[#353535]' 
     : 'bg-[#1a1a1a] text-white'
 
+  // Helper to render a block - handle propagandaGrid specially to bypass BlockRenderer switch case issue
+  const renderBlock = (block: PageBlock) => {
+    // For propagandaGrid, render FeaturedContent directly
+    if (block.type === 'propagandaGrid') {
+      return (
+        <FeaturedContent 
+          key={block.id}
+          heading={block.props?.heading || 'Featured Propaganda'}
+          maxItems={block.props?.maxItems || 3}
+          showHeading={true}
+        />
+      )
+    }
+    // For all other blocks, use BlockRenderer
+    return (
+      <BlockRenderer 
+        key={block.id} 
+        block={block} 
+        isEditing={false}
+      />
+    )
+  }
+
   return (
     <div className={`min-h-screen ${themeClasses} ${textureClasses[globals.backgroundTexture] || ''}`}>
-      {sortedBlocks.map(block => (
-        <BlockRenderer 
-          key={block.id} 
-          block={block} 
-          isEditing={false}
-        />
-      ))}
+      {sortedBlocks.map(renderBlock)}
     </div>
   )
 }

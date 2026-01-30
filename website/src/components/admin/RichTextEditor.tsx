@@ -25,8 +25,11 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
     toolbar: [
       [{ header: [1, 2, 3, false] }],
       ["bold", "italic", "underline", "strike"],
+      [{ align: [] }, { align: "center" }, { align: "right" }, { align: "justify" }],
       [{ list: "ordered" }, { list: "bullet" }],
+      [{ indent: "-1" }, { indent: "+1" }],
       ["blockquote", "code-block"],
+      [{ color: [] }, { background: [] }],
       ["link", "image", "video"],
       ["clean"],
     ],
@@ -38,9 +41,13 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
     "italic",
     "underline",
     "strike",
+    "align",
     "list",
+    "indent",
     "blockquote",
     "code-block",
+    "color",
+    "background",
     "link",
     "image",
     "video",
@@ -70,6 +77,23 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
         .rich-text-editor .ql-toolbar button:hover .ql-fill,
         .rich-text-editor .ql-toolbar button.ql-active .ql-fill {
           fill: #CCAA4C;
+        }
+        .rich-text-editor .ql-toolbar .ql-picker-label {
+          color: #AEACA1;
+        }
+        .rich-text-editor .ql-toolbar .ql-picker-label:hover,
+        .rich-text-editor .ql-toolbar .ql-picker-label.ql-active {
+          color: #CCAA4C;
+        }
+        .rich-text-editor .ql-toolbar .ql-picker-options {
+          background: #252219;
+          border-color: rgba(174, 172, 161, 0.3);
+        }
+        .rich-text-editor .ql-toolbar .ql-picker-item {
+          color: #AEACA1;
+        }
+        .rich-text-editor .ql-toolbar .ql-picker-item:hover {
+          color: #CCAA4C;
         }
         .rich-text-editor .ql-container {
           background: #1f1c13;

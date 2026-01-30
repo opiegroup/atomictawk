@@ -1,76 +1,88 @@
 import Link from "next/link";
 import { ContentCard } from "@/components/ContentCard";
-import { SectionHeading } from "@/components/SectionHeading";
 import { Tv, Wrench, Gamepad2, Beaker, Radio } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 
-// Placeholder content - in production this comes from database
-const categories = [
-  { name: "Burnouts & Cars", slug: "burnouts", icon: Tv, count: 24 },
-  { name: "The Shed", slug: "shed", icon: Wrench, count: 18 },
-  { name: "Bloke Science", slug: "science", icon: Beaker, count: 12 },
-  { name: "Gaming & Sim Rigs", slug: "gaming", icon: Gamepad2, count: 15 },
-  { name: "Broadcasts", slug: "broadcasts", icon: Radio, count: 32 },
-];
+// Server-side data fetching
+async function getContent() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    return { content: [], categories: [] };
+  }
 
-const featuredContent = [
-  {
-    title: "Burnout Theory: Friction & Torque Calibration",
-    description: "Understanding the physics behind the perfect burnout",
-    thumbnailUrl: "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&q=80",
-    href: "/shows/burnouts/burnout-theory",
-    category: "Mechanical Safety Notice",
-    refId: "AT-990-2",
-    isLive: true,
-    duration: "12:44:09",
-  },
-  {
-    title: "Piston Wear: Critical Tolerances in High Revs",
-    description: "Deep dive into engine maintenance essentials",
-    thumbnailUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
-    href: "/shows/shed/piston-wear",
-    category: "Technical Bulletin",
-    refId: "AT-812-4",
-    duration: "08:15:33",
-  },
-  {
-    title: "Bloke Science 101: The Thermodynamics of Oil",
-    description: "Why your engine oil matters more than you think",
-    thumbnailUrl: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=800&q=80",
-    href: "/shows/science/thermodynamics-oil",
-    category: "Procedure Log",
-    refId: "AT-443-1",
-    duration: "22:04:11",
-  },
-  {
-    title: "Torque Ratio Calibration: Field Report",
-    description: "Hands-on transmission testing in the wild",
-    thumbnailUrl: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&q=80",
-    href: "/shows/shed/torque-calibration",
-    category: "Operational Log",
-    refId: "AT-102-9",
-    duration: "05:40:19",
-  },
-  {
-    title: "High Revs Ahead: Transmission Strain Analysis",
-    description: "What happens when you push it too far",
-    thumbnailUrl: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80",
-    href: "/shows/burnouts/transmission-strain",
-    category: "Safety Warning",
-    refId: "AT-229-5",
-    duration: "31:12:00",
-  },
-  {
-    title: "The Shed Diaries: Salvaging 1950s Gearboxes",
-    description: "Bringing vintage transmissions back to life",
-    thumbnailUrl: "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800&q=80",
-    href: "/shows/shed/salvaging-gearboxes",
-    category: "Field Report",
-    refId: "AT-606-3",
-    duration: "19:22:55",
-  },
-];
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
-export default function ShowsPage() {
+  // Fetch published content
+  const { data: content } = await supabase
+    .from('content')
+    .select(`
+      id,
+      title,
+      slug,
+      subtitle,
+      description,
+      thumbnail_url,
+      video_url,
+      content_type,
+      is_featured,
+      published_at,
+      view_count,
+      category:categories(id, name, slug, icon)
+    `)
+    .eq('status', 'published')
+    .order('published_at', { ascending: false })
+    .limit(20);
+
+  // Fetch categories with counts
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('id, name, slug, icon')
+    .eq('is_visible', true)
+    .order('sort_order');
+
+  // Get content counts per category
+  const categoriesWithCounts = await Promise.all(
+    (categories || []).map(async (cat) => {
+      const { count } = await supabase
+        .from('content')
+        .select('*', { count: 'exact', head: true })
+        .eq('category_id', cat.id)
+        .eq('status', 'published');
+      return { ...cat, count: count || 0 };
+    })
+  );
+
+  return {
+    content: content || [],
+    categories: categoriesWithCounts,
+  };
+}
+
+const categoryIcons: Record<string, any> = {
+  burnouts: Tv,
+  shed: Wrench,
+  science: Beaker,
+  gaming: Gamepad2,
+  broadcasts: Radio,
+};
+
+export default async function ShowsPage() {
+  const { content, categories } = await getContent();
+
+  // Map content to ContentCard format
+  const featuredContent = content.map((item: any) => ({
+    title: item.title,
+    description: item.description || item.subtitle,
+    thumbnailUrl: item.thumbnail_url || "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&q=80",
+    href: `/shows/${item.category?.slug || 'general'}/${item.slug}`,
+    category: item.category?.name || 'General',
+    refId: item.subtitle || `AT-${item.id.slice(0,3).toUpperCase()}`,
+    isLive: item.is_featured,
+    duration: item.video_url ? "00:00:00" : undefined,
+  }));
+
   return (
     <div className="min-h-screen bg-[#1f1c13]">
       {/* Page Header */}
@@ -111,21 +123,27 @@ export default function ShowsPage() {
                 Service Categories
               </p>
               <div className="space-y-2">
-                {categories.map((cat, index) => {
-                  const Icon = cat.icon;
+                {/* All Shows link */}
+                <Link
+                  href="/shows"
+                  className="flex items-center gap-4 p-3 bg-[#CCAA4C] text-black transition-all"
+                >
+                  <Radio className="w-5 h-5" />
+                  <span className="text-sm font-bold tracking-tight">All Broadcasts</span>
+                  <span className="ml-auto text-xs opacity-60">({content.length})</span>
+                </Link>
+                
+                {categories.map((cat: any) => {
+                  const Icon = categoryIcons[cat.slug] || Radio;
                   return (
                     <Link
                       key={cat.slug}
                       href={`/shows/${cat.slug}`}
-                      className={`flex items-center gap-4 p-3 transition-all ${
-                        index === 0
-                          ? "bg-[#CCAA4C] text-black"
-                          : "text-[#E3E2D5] hover:bg-[#AEACA1]/10 border border-transparent hover:border-[#AEACA1]"
-                      }`}
+                      className="flex items-center gap-4 p-3 text-[#E3E2D5] hover:bg-[#AEACA1]/10 border border-transparent hover:border-[#AEACA1] transition-all"
                     >
-                      <Icon className={`w-5 h-5 ${index !== 0 ? "text-[#CCAA4C]" : ""}`} />
+                      <Icon className="w-5 h-5 text-[#CCAA4C]" />
                       <span className="text-sm font-bold tracking-tight">{cat.name}</span>
-                      <span className={`ml-auto text-xs ${index === 0 ? "opacity-60" : "text-[#AEACA1]"}`}>({cat.count})</span>
+                      <span className="ml-auto text-xs text-[#AEACA1]">({cat.count})</span>
                     </Link>
                   );
                 })}
@@ -139,15 +157,15 @@ export default function ShowsPage() {
               </p>
               <div className="border-2 border-[#AEACA1] p-4 space-y-3 bg-black/40">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-[#E3E2D5]">REVS / MIN</span>
-                  <span className="text-xs font-mono text-[#CCAA4C]">7.4k</span>
+                  <span className="text-[10px] font-bold text-[#E3E2D5]">BROADCASTS</span>
+                  <span className="text-xs font-mono text-[#CCAA4C]">{content.length}</span>
                 </div>
                 <div className="h-1.5 bg-[#AEACA1]/20 w-full overflow-hidden">
-                  <div className="h-full bg-[#CCAA4C] w-[74%]"></div>
+                  <div className="h-full bg-[#CCAA4C]" style={{ width: `${Math.min(content.length * 5, 100)}%` }}></div>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-[#E3E2D5]">TORQUE</span>
-                  <span className="text-xs font-mono text-[#CCAA4C]">HIGH</span>
+                  <span className="text-[10px] font-bold text-[#E3E2D5]">STATUS</span>
+                  <span className="text-xs font-mono text-[#CCAA4C]">ONLINE</span>
                 </div>
               </div>
             </div>
@@ -173,18 +191,28 @@ export default function ShowsPage() {
           </div>
 
           {/* Content Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-            {featuredContent.map((content) => (
-              <ContentCard key={content.refId} {...content} />
-            ))}
-          </div>
+          {featuredContent.length === 0 ? (
+            <div className="text-center py-16 text-[#AEACA1]">
+              <Radio className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <p className="text-xl font-bold uppercase mb-2">No Broadcasts Found</p>
+              <p className="text-sm">Content will appear here once published from the admin panel.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              {featuredContent.map((content: any) => (
+                <ContentCard key={content.refId} {...content} />
+              ))}
+            </div>
+          )}
 
           {/* Load More */}
-          <div className="text-center mt-12">
-            <button className="px-8 py-4 border-2 border-[#AEACA1] text-[#E3E2D5] font-bold uppercase tracking-widest hover:border-[#CCAA4C] hover:text-[#CCAA4C] transition-colors">
-              Load More Archives
-            </button>
-          </div>
+          {featuredContent.length > 0 && (
+            <div className="text-center mt-12">
+              <button className="px-8 py-4 border-2 border-[#AEACA1] text-[#E3E2D5] font-bold uppercase tracking-widest hover:border-[#CCAA4C] hover:text-[#CCAA4C] transition-colors">
+                Load More Archives
+              </button>
+            </div>
+          )}
         </main>
       </div>
 

@@ -104,24 +104,9 @@ export function BlokeScienceSlider() {
   };
 
   return (
-    <div className="relative overflow-hidden" ref={containerRef}>
-      {/* Navigation Buttons */}
-      <button
-        onClick={goToPrevious}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-[#CCAA4C] hover:bg-[#FF6B35] text-[#353535] hover:text-white flex items-center justify-center transition-colors"
-      >
-        <ChevronLeft className="w-6 h-6" />
-      </button>
-      
-      <button
-        onClick={goToNext}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-[#CCAA4C] hover:bg-[#FF6B35] text-[#353535] hover:text-white flex items-center justify-center transition-colors"
-      >
-        <ChevronRight className="w-6 h-6" />
-      </button>
-
-      {/* Cards Container */}
-      <div className="flex justify-center items-center gap-6 py-4 px-16">
+    <div className="relative" ref={containerRef}>
+      {/* Cards Container - with padding for buttons */}
+      <div className="flex justify-center items-center gap-6 py-4 px-20 md:px-24 overflow-hidden">
         {getVisibleIndices().map((factIndex, position) => {
           const fact = blokeScienceFacts[factIndex];
           const isCenter = position === 1;
@@ -136,7 +121,7 @@ export function BlokeScienceSlider() {
                 ${isCenter ? 'scale-100 opacity-100 z-10' : 'scale-90 opacity-60 z-0'}
                 ${isAnimating ? (isAnimating.direction === 'left' ? '-translate-x-full opacity-0' : 'translate-x-full opacity-0') : 'translate-x-0'}
                 ${!isVisible && !isAnimating ? 'opacity-0' : ''}
-                w-full max-w-md shrink-0
+                w-full max-w-sm shrink-0
               `}
               style={{
                 transform: isAnimating 
@@ -165,6 +150,21 @@ export function BlokeScienceSlider() {
           );
         })}
       </div>
+
+      {/* Navigation Buttons - positioned at edges, outside cards */}
+      <button
+        onClick={goToPrevious}
+        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 bg-[#CCAA4C] hover:bg-[#FF6B35] text-[#353535] hover:text-white flex items-center justify-center transition-colors shadow-lg"
+      >
+        <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+      </button>
+      
+      <button
+        onClick={goToNext}
+        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 bg-[#CCAA4C] hover:bg-[#FF6B35] text-[#353535] hover:text-white flex items-center justify-center transition-colors shadow-lg"
+      >
+        <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+      </button>
 
       {/* Progress Dots */}
       <div className="flex justify-center gap-2 mt-6">
