@@ -39,6 +39,7 @@ export type BlockType =
   | 'categoryTileGrid'
   | 'featureGrid'
   | 'imageGallery'
+  | 'buttonGroup'
   // Atomic Tawk specific blocks
   | 'atomicHero'
   | 'tickerBar'
@@ -276,6 +277,72 @@ export interface ImageGalleryBlockProps {
 
 export type ImageGalleryVariant = 'grid' | 'masonry' | 'slider'
 
+// Button Group Block - Add buttons anywhere
+export interface ButtonGroupBlockProps {
+  buttons: Array<{
+    id: string
+    text: string
+    link: string
+    style: 'primary' | 'secondary' | 'outline' | 'ghost'
+    size: 'small' | 'medium' | 'large'
+    icon?: string
+  }>
+  alignment: 'left' | 'center' | 'right'
+  spacing: 'tight' | 'normal' | 'wide'
+  direction: 'horizontal' | 'vertical'
+}
+
+export type ButtonGroupVariant = 'default' | 'stacked' | 'pill'
+
+// ============================================
+// COMMON BLOCK STYLING (applies to all blocks)
+// ============================================
+
+export interface BlockButton {
+  id: string
+  text: string
+  link: string
+  style: 'primary' | 'secondary' | 'outline' | 'ghost'
+  size: 'small' | 'medium' | 'large'
+  icon?: string
+}
+
+// Button positioning within blocks
+export interface ButtonsConfig {
+  position: 'bottom-center' | 'bottom-left' | 'bottom-right' | 'top-center' | 'top-left' | 'top-right' | 'center' | 'inline'
+  spacing: 'tight' | 'normal' | 'wide'
+  direction: 'horizontal' | 'vertical'
+  marginTop?: number
+  marginBottom?: number
+}
+
+export interface BlockStyling {
+  // Background
+  backgroundColor?: string // hex or theme color key
+  backgroundGradient?: string // e.g., 'linear-gradient(to right, #CCAA4C, #FF6B35)'
+  backgroundImage?: string // URL or uploaded path
+  backgroundVideo?: string // URL or uploaded path for video backgrounds
+  backgroundOverlay?: number // opacity 0-100
+  backgroundBlur?: boolean
+  
+  // Texture overlay
+  textureOverlay?: 'none' | 'halftone' | 'noise' | 'scanlines' | 'metal' | 'paper'
+  textureOpacity?: number // 0-100
+  
+  // Frame/Border
+  frameStyle?: 'none' | 'solid' | 'thick' | 'industrial' | 'double' | 'dashed'
+  frameColor?: string
+  borderRadius?: 'none' | 'small' | 'medium' | 'large'
+  
+  // Spacing
+  paddingTop?: 'none' | 'small' | 'medium' | 'large' | 'xlarge'
+  paddingBottom?: 'none' | 'small' | 'medium' | 'large' | 'xlarge'
+  
+  // Colors
+  accentColor?: string
+  textColor?: string
+}
+
 // ============================================
 // PAGE BLOCK STRUCTURE
 // ============================================
@@ -287,6 +354,12 @@ export interface PageBlock {
   variant: string
   order: number
   visible: boolean
+  // Common styling options for all blocks
+  styling?: BlockStyling
+  // Additional buttons that can be added to any block
+  buttons?: BlockButton[]
+  // Button positioning configuration
+  buttonsConfig?: ButtonsConfig
 }
 
 // ============================================
@@ -662,6 +735,24 @@ export const BLOCK_LIBRARY: BlockDefinition[] = [
     },
     defaultVariant: 'atomic',
     variants: ['atomic', 'gear', 'radiation', 'simple'],
+  },
+  {
+    type: 'buttonGroup',
+    name: 'Button Group',
+    description: 'Add one or more buttons anywhere',
+    icon: '🔘',
+    category: 'layout',
+    defaultProps: {
+      buttons: [
+        { id: '1', text: 'Primary Action', link: '/', style: 'primary', size: 'medium', icon: '' },
+        { id: '2', text: 'Secondary', link: '/', style: 'outline', size: 'medium', icon: '' },
+      ],
+      alignment: 'center',
+      spacing: 'normal',
+      direction: 'horizontal',
+    },
+    defaultVariant: 'default',
+    variants: ['default', 'stacked', 'pill'],
   },
   {
     type: 'communityFeed',

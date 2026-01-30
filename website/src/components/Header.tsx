@@ -2,30 +2,79 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Menu, X, Search, Radio, User, LogIn, LogOut, Shield } from "lucide-react";
-import { useAuth, useRole } from "@/lib/supabase";
+import { useAuth, useRole, getSupabaseClient } from "@/lib/supabase";
 
-const navLinks = [
-  { href: "/tv", label: "TV" },
-  { href: "/shows", label: "Broadcasts" },
-  { href: "/game", label: "🎮 Game" },
-  { href: "/community", label: "💬 Community" },
-  { href: "/store", label: "Store" },
-  { href: "/about", label: "About" },
+// Default fallback links (used if database not available)
+const defaultNavLinks = [
+  { href: "/tv", label: "TV", icon: null },
+  { href: "/shows", label: "Broadcasts", icon: null },
+  { href: "/game", label: "Game", icon: "🎮" },
+  { href: "/community", label: "Community", icon: "💬" },
+  { href: "/store", label: "Store", icon: null },
+  { href: "/about", label: "About", icon: null },
 ];
+
+interface NavLink {
+  href: string;
+  label: string;
+  icon: string | null;
+  open_in_new_tab?: boolean;
+  requires_auth?: boolean;
+}
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [navLinks, setNavLinks] = useState<NavLink[]>(defaultNavLinks);
   const { user, profile, loading, signOut } = useAuth();
   const { isAdmin, isSales } = useRole();
+
+  // Load menu items from database
+  useEffect(() => {
+    const loadMenuItems = async () => {
+      try {
+        const supabase = getSupabaseClient();
+        if (!supabase) return;
+
+        const { data, error } = await (supabase as any).rpc('get_menu_items', { 
+          p_location: 'header' 
+        });
+
+        if (error) {
+          console.error('Error loading menu:', error);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          setNavLinks(data.map((item: any) => ({
+            href: item.href,
+            label: item.label,
+            icon: item.icon,
+            open_in_new_tab: item.open_in_new_tab,
+            requires_auth: item.requires_auth,
+          })));
+        }
+      } catch (error) {
+        console.error('Error loading menu items:', error);
+      }
+    };
+
+    loadMenuItems();
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
     setUserMenuOpen(false);
     window.location.href = '/';
   };
+
+  // Filter links based on auth requirements
+  const filteredNavLinks = navLinks.filter(link => {
+    if (link.requires_auth && !user) return false;
+    return true;
+  });
 
   return (
     <header className="sticky top-0 z-50 border-b-4 border-[#353535] bg-[#E3E2D5]">
@@ -48,13 +97,16 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex flex-grow">
-          {navLinks.map((link) => (
+          {filteredNavLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="px-6 xl:px-8 flex items-center border-r-4 border-[#353535] hover:bg-white transition-colors font-bold uppercase tracking-widest text-xs text-[#353535]"
+              target={link.open_in_new_tab ? "_blank" : undefined}
+              rel={link.open_in_new_tab ? "noopener noreferrer" : undefined}
+              className="px-6 xl:px-8 flex items-center gap-1 border-r-4 border-[#353535] hover:bg-white transition-colors font-bold uppercase tracking-widest text-xs text-[#353535]"
               style={{ fontFamily: "var(--font-oswald), sans-serif" }}
             >
+              {link.icon && <span>{link.icon}</span>}
               {link.label}
             </Link>
           ))}
@@ -175,14 +227,17 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="lg:hidden border-t-4 border-[#353535] bg-white">
           <nav className="flex flex-col">
-            {navLinks.map((link) => (
+            {filteredNavLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
+                target={link.open_in_new_tab ? "_blank" : undefined}
+                rel={link.open_in_new_tab ? "noopener noreferrer" : undefined}
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-6 py-4 border-b-2 border-[#353535]/20 hover:bg-[#CCAA4C]/20 transition-colors font-bold uppercase tracking-widest text-sm"
+                className="px-6 py-4 border-b-2 border-[#353535]/20 hover:bg-[#CCAA4C]/20 transition-colors font-bold uppercase tracking-widest text-sm flex items-center gap-2"
                 style={{ fontFamily: "var(--font-oswald), sans-serif" }}
               >
+                {link.icon && <span>{link.icon}</span>}
                 {link.label}
               </Link>
             ))}

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { PageBlock, THEME_COLORS } from '@/lib/pageBuilder'
+import { PageBlock, THEME_COLORS, BlockStyling, BlockButton, ButtonsConfig } from '@/lib/pageBuilder'
 import Link from 'next/link'
 import Image from 'next/image'
 import { 
@@ -13,6 +13,267 @@ import {
 interface BlockRendererProps {
   block: PageBlock
   isEditing?: boolean
+}
+
+// Style wrapper for applying common styling to all blocks
+function BlockStyleWrapper({ 
+  styling, 
+  buttons,
+  buttonsConfig,
+  isEditing,
+  children 
+}: { 
+  styling?: BlockStyling
+  buttons?: BlockButton[]
+  buttonsConfig?: ButtonsConfig
+  isEditing: boolean
+  children: React.ReactNode 
+}) {
+  // Build inline styles
+  const wrapperStyle: React.CSSProperties = {}
+  
+  // Background
+  if (styling?.backgroundColor) {
+    wrapperStyle.backgroundColor = styling.backgroundColor
+  }
+  if (styling?.backgroundGradient) {
+    wrapperStyle.background = styling.backgroundGradient
+  }
+  if (styling?.backgroundImage && !styling?.backgroundVideo) {
+    wrapperStyle.backgroundImage = `url(${styling.backgroundImage})`
+    wrapperStyle.backgroundSize = 'cover'
+    wrapperStyle.backgroundPosition = 'center'
+  }
+  
+  // Text color
+  if (styling?.textColor) {
+    wrapperStyle.color = styling.textColor
+  }
+
+  // Build classes
+  const classes: string[] = ['relative']
+  
+  // Padding
+  const paddingMap = {
+    none: 'py-0',
+    small: 'py-4',
+    medium: 'py-8',
+    large: 'py-16',
+    xlarge: 'py-24',
+  }
+  if (styling?.paddingTop) classes.push(paddingMap[styling.paddingTop]?.replace('py-', 'pt-') || '')
+  if (styling?.paddingBottom) classes.push(paddingMap[styling.paddingBottom]?.replace('py-', 'pb-') || '')
+  
+  // Border radius
+  const radiusMap = {
+    none: '',
+    small: 'rounded',
+    medium: 'rounded-lg',
+    large: 'rounded-2xl',
+  }
+  if (styling?.borderRadius) classes.push(radiusMap[styling.borderRadius] || '')
+  
+  // Frame styles
+  const frameStyles: Record<string, string> = {
+    none: '',
+    solid: 'border-2',
+    thick: 'border-4',
+    industrial: 'border-4 shadow-[4px_4px_0px_0px]',
+    double: 'border-4 outline outline-2 outline-offset-2',
+    dashed: 'border-4 border-dashed',
+  }
+  if (styling?.frameStyle && styling.frameStyle !== 'none') {
+    classes.push(frameStyles[styling.frameStyle] || '')
+  }
+
+  // Texture overlay class
+  const textureClasses: Record<string, string> = {
+    halftone: 'halftone-overlay',
+    noise: 'noise-overlay',
+    scanlines: 'crt-scanline',
+    metal: 'metal-overlay',
+    paper: 'paper-overlay',
+  }
+
+  // Button rendering helper with positioning
+  const renderButtons = () => {
+    if (!buttons || buttons.length === 0) return null
+    
+    const config = buttonsConfig || { position: 'bottom-center', spacing: 'normal', direction: 'horizontal' }
+    
+    const getButtonClasses = (style: string, size: string) => {
+      const baseClasses = 'font-bold uppercase tracking-widest transition-all border-4 inline-flex items-center gap-2'
+      const sizeClasses = {
+        small: 'px-4 py-2 text-xs',
+        medium: 'px-6 py-3 text-sm',
+        large: 'px-8 py-4 text-base',
+      }
+      const styleClasses = {
+        primary: 'bg-[#CCAA4C] border-[#CCAA4C] text-[#1a1a1a] hover:bg-[#FF6B35] hover:border-[#FF6B35] hover:text-white',
+        secondary: 'bg-[#353535] border-[#353535] text-white hover:bg-[#CCAA4C] hover:border-[#CCAA4C] hover:text-[#1a1a1a]',
+        outline: 'bg-transparent border-[#CCAA4C] text-[#CCAA4C] hover:bg-[#CCAA4C] hover:text-[#1a1a1a]',
+        ghost: 'bg-transparent border-transparent text-[#CCAA4C] hover:bg-[#CCAA4C]/10',
+      }
+      return `${baseClasses} ${sizeClasses[size as keyof typeof sizeClasses] || sizeClasses.medium} ${styleClasses[style as keyof typeof styleClasses] || styleClasses.primary}`
+    }
+
+    // Position classes for absolute positioning within block
+    const positionClasses: Record<string, string> = {
+      'bottom-center': 'absolute bottom-6 left-1/2 -translate-x-1/2',
+      'bottom-left': 'absolute bottom-6 left-6',
+      'bottom-right': 'absolute bottom-6 right-6',
+      'top-center': 'absolute top-6 left-1/2 -translate-x-1/2',
+      'top-left': 'absolute top-6 left-6',
+      'top-right': 'absolute top-6 right-6',
+      'center': 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+      'inline': '', // No absolute positioning - flows with content
+    }
+
+    const spacingClasses = {
+      tight: 'gap-2',
+      normal: 'gap-4',
+      wide: 'gap-6',
+    }
+
+    const directionClasses = {
+      horizontal: 'flex-row flex-wrap',
+      vertical: 'flex-col',
+    }
+
+    const containerClasses = `
+      flex ${directionClasses[config.direction] || 'flex-row'} 
+      ${spacingClasses[config.spacing] || 'gap-4'}
+      ${positionClasses[config.position] || ''} 
+      z-20
+    `
+
+    const containerStyle: React.CSSProperties = {}
+    if (config.marginTop) containerStyle.marginTop = `${config.marginTop}px`
+    if (config.marginBottom) containerStyle.marginBottom = `${config.marginBottom}px`
+
+    // For inline position, render at the end of content
+    if (config.position === 'inline') {
+      return null // Will be handled differently
+    }
+
+    return (
+      <div className={containerClasses} style={containerStyle}>
+        {buttons.map((btn) => (
+          isEditing ? (
+            <span key={btn.id} className={getButtonClasses(btn.style, btn.size)}>
+              {btn.icon && <span>{btn.icon}</span>}
+              {btn.text}
+            </span>
+          ) : (
+            <Link key={btn.id} href={btn.link || '/'} className={getButtonClasses(btn.style, btn.size)}>
+              {btn.icon && <span>{btn.icon}</span>}
+              {btn.text}
+            </Link>
+          )
+        ))}
+      </div>
+    )
+  }
+
+  // Inline buttons (rendered after content)
+  const renderInlineButtons = () => {
+    if (!buttons || buttons.length === 0) return null
+    const config = buttonsConfig || { position: 'bottom-center', spacing: 'normal', direction: 'horizontal' }
+    if (config.position !== 'inline') return null
+
+    const getButtonClasses = (style: string, size: string) => {
+      const baseClasses = 'font-bold uppercase tracking-widest transition-all border-4 inline-flex items-center gap-2'
+      const sizeClasses = {
+        small: 'px-4 py-2 text-xs',
+        medium: 'px-6 py-3 text-sm',
+        large: 'px-8 py-4 text-base',
+      }
+      const styleClasses = {
+        primary: 'bg-[#CCAA4C] border-[#CCAA4C] text-[#1a1a1a] hover:bg-[#FF6B35] hover:border-[#FF6B35] hover:text-white',
+        secondary: 'bg-[#353535] border-[#353535] text-white hover:bg-[#CCAA4C] hover:border-[#CCAA4C] hover:text-[#1a1a1a]',
+        outline: 'bg-transparent border-[#CCAA4C] text-[#CCAA4C] hover:bg-[#CCAA4C] hover:text-[#1a1a1a]',
+        ghost: 'bg-transparent border-transparent text-[#CCAA4C] hover:bg-[#CCAA4C]/10',
+      }
+      return `${baseClasses} ${sizeClasses[size as keyof typeof sizeClasses] || sizeClasses.medium} ${styleClasses[style as keyof typeof styleClasses] || styleClasses.primary}`
+    }
+
+    const spacingClasses = { tight: 'gap-2', normal: 'gap-4', wide: 'gap-6' }
+    const directionClasses = { horizontal: 'flex-row flex-wrap', vertical: 'flex-col' }
+
+    return (
+      <div 
+        className={`flex justify-center ${directionClasses[config.direction] || 'flex-row'} ${spacingClasses[config.spacing] || 'gap-4'} px-6 pb-6`}
+        style={{ 
+          marginTop: config.marginTop ? `${config.marginTop}px` : '24px',
+          marginBottom: config.marginBottom ? `${config.marginBottom}px` : '0',
+        }}
+      >
+        {buttons.map((btn) => (
+          isEditing ? (
+            <span key={btn.id} className={getButtonClasses(btn.style, btn.size)}>
+              {btn.icon && <span>{btn.icon}</span>}
+              {btn.text}
+            </span>
+          ) : (
+            <Link key={btn.id} href={btn.link || '/'} className={getButtonClasses(btn.style, btn.size)}>
+              {btn.icon && <span>{btn.icon}</span>}
+              {btn.text}
+            </Link>
+          )
+        ))}
+      </div>
+    )
+  }
+
+  const hasBackgroundMedia = styling?.backgroundImage || styling?.backgroundVideo
+
+  return (
+    <div 
+      className={`${classes.join(' ')} overflow-hidden`}
+      style={{
+        ...wrapperStyle,
+        borderColor: styling?.frameColor || '#CCAA4C',
+        ['--shadow-color' as any]: styling?.frameColor || '#CCAA4C',
+      }}
+    >
+      {/* Background Video */}
+      {styling?.backgroundVideo && (
+        <video
+          src={styling.backgroundVideo}
+          className="absolute inset-0 w-full h-full object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+      )}
+      
+      {/* Background overlay for images/videos */}
+      {hasBackgroundMedia && (
+        <div 
+          className="absolute inset-0 bg-black pointer-events-none"
+          style={{ opacity: (styling?.backgroundOverlay ?? 50) / 100 }}
+        />
+      )}
+      
+      {/* Texture overlay */}
+      {styling?.textureOverlay && styling.textureOverlay !== 'none' && (
+        <div 
+          className={`absolute inset-0 pointer-events-none ${textureClasses[styling.textureOverlay] || ''}`}
+          style={{ opacity: (styling?.textureOpacity ?? 20) / 100 }}
+        />
+      )}
+      
+      {/* Content */}
+      <div className="relative z-10">
+        {children}
+        {renderInlineButtons()}
+      </div>
+
+      {/* Positioned buttons (non-inline) */}
+      {renderButtons()}
+    </div>
+  )
 }
 
 export function BlockRenderer({ block, isEditing = false }: BlockRendererProps) {
@@ -52,6 +313,8 @@ export function BlockRenderer({ block, isEditing = false }: BlockRendererProps) 
         return <VideoBlock block={block} />
       case 'divider':
         return <DividerBlock block={block} />
+      case 'buttonGroup':
+        return <ButtonGroupBlock block={block} isEditing={isEditing} />
       case 'communityFeed':
         return <CommunityFeedBlock block={block} isEditing={isEditing} />
       case 'productEmbed':
@@ -65,7 +328,17 @@ export function BlockRenderer({ block, isEditing = false }: BlockRendererProps) 
     }
   }
 
-  return renderBlock()
+  // Wrap with style wrapper to apply common styling + additional buttons
+  return (
+    <BlockStyleWrapper 
+      styling={block.styling} 
+      buttons={block.buttons}
+      buttonsConfig={block.buttonsConfig}
+      isEditing={isEditing}
+    >
+      {renderBlock()}
+    </BlockStyleWrapper>
+  )
 }
 
 // ============================================
@@ -908,6 +1181,72 @@ function DividerBlock({ block }: { block: PageBlock }) {
     <div className={`px-8 flex items-center ${heightClasses[height as keyof typeof heightClasses] || heightClasses.medium}`}>
       <div className="w-full">
         {variantStyles[block.variant] || variantStyles.simple}
+      </div>
+    </div>
+  )
+}
+
+// BUTTON GROUP BLOCK
+function ButtonGroupBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
+  const { buttons, alignment, spacing, direction } = block.props
+
+  const alignmentClasses = {
+    left: 'justify-start',
+    center: 'justify-center',
+    right: 'justify-end',
+  }
+
+  const spacingClasses = {
+    tight: 'gap-2',
+    normal: 'gap-4',
+    wide: 'gap-6',
+  }
+
+  const directionClasses = {
+    horizontal: 'flex-row flex-wrap',
+    vertical: 'flex-col',
+  }
+
+  const getButtonClasses = (style: string, size: string) => {
+    const baseClasses = 'font-bold uppercase tracking-widest transition-all border-4'
+    
+    const sizeClasses = {
+      small: 'px-4 py-2 text-xs',
+      medium: 'px-6 py-3 text-sm',
+      large: 'px-8 py-4 text-base',
+    }
+
+    const styleClasses = {
+      primary: 'bg-[#CCAA4C] border-[#CCAA4C] text-[#1a1a1a] hover:bg-[#FF6B35] hover:border-[#FF6B35] hover:text-white',
+      secondary: 'bg-[#353535] border-[#353535] text-white hover:bg-[#CCAA4C] hover:border-[#CCAA4C] hover:text-[#1a1a1a]',
+      outline: 'bg-transparent border-[#CCAA4C] text-[#CCAA4C] hover:bg-[#CCAA4C] hover:text-[#1a1a1a]',
+      ghost: 'bg-transparent border-transparent text-[#CCAA4C] hover:bg-[#CCAA4C]/10',
+    }
+
+    return `${baseClasses} ${sizeClasses[size as keyof typeof sizeClasses] || sizeClasses.medium} ${styleClasses[style as keyof typeof styleClasses] || styleClasses.primary}`
+  }
+
+  // Pill variant adjustments
+  const pillClasses = block.variant === 'pill' ? 'rounded-full' : ''
+
+  return (
+    <div className="px-8 py-8">
+      <div className={`flex ${alignmentClasses[alignment as keyof typeof alignmentClasses] || alignmentClasses.center} ${spacingClasses[spacing as keyof typeof spacingClasses] || spacingClasses.normal} ${directionClasses[direction as keyof typeof directionClasses] || directionClasses.horizontal}`}>
+        {(buttons || []).map((btn: any) => {
+          const classes = `${getButtonClasses(btn.style, btn.size)} ${pillClasses}`
+          
+          return isEditing ? (
+            <span key={btn.id} className={classes}>
+              {btn.icon && <span className="mr-2">{btn.icon}</span>}
+              {btn.text}
+            </span>
+          ) : (
+            <Link key={btn.id} href={btn.link || '/'} className={classes}>
+              {btn.icon && <span className="mr-2">{btn.icon}</span>}
+              {btn.text}
+            </Link>
+          )
+        })}
       </div>
     </div>
   )

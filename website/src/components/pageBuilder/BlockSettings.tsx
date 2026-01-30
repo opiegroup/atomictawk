@@ -1,13 +1,97 @@
 'use client'
 
-import { PageBlock, getBlockDefinition, THEME_COLORS, ThemeColor } from '@/lib/pageBuilder'
-import { Trash2, Copy, Eye, EyeOff } from 'lucide-react'
+import { useState } from 'react'
+import { PageBlock, getBlockDefinition, THEME_COLORS, ThemeColor, BlockStyling, BlockButton, ButtonsConfig } from '@/lib/pageBuilder'
+import { Trash2, Copy, Eye, EyeOff, ChevronDown, ChevronRight, Plus, Palette, Image, Frame, Type, Film, Move } from 'lucide-react'
+import { MediaUpload } from './MediaUpload'
 
 interface BlockSettingsProps {
   block: PageBlock
   onUpdate: (updates: Partial<PageBlock>) => void
   onDelete: () => void
   onDuplicate: () => void
+}
+
+// Collapsible Section Component
+function CollapsibleSection({ 
+  title, 
+  icon: Icon, 
+  children, 
+  defaultOpen = false 
+}: { 
+  title: string
+  icon?: any
+  children: React.ReactNode
+  defaultOpen?: boolean
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
+  
+  return (
+    <div className="border-t border-[#353535]">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[#2a2a2a] transition-colors"
+      >
+        <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#888]">
+          {Icon && <Icon className="w-4 h-4 text-[#CCAA4C]" />}
+          {title}
+        </span>
+        {isOpen ? <ChevronDown className="w-4 h-4 text-[#666]" /> : <ChevronRight className="w-4 h-4 text-[#666]" />}
+      </button>
+      {isOpen && <div className="px-4 pb-4 space-y-3">{children}</div>}
+    </div>
+  )
+}
+
+// Color Field with presets
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+}) {
+  const presetColors = [
+    { value: '', label: 'Default' },
+    { value: '#CCAA4C', label: 'Gold' },
+    { value: '#FF6B35', label: 'Orange' },
+    { value: '#39FF14', label: 'Green' },
+    { value: '#353535', label: 'Charcoal' },
+    { value: '#1a1a1a', label: 'Black' },
+    { value: '#E3E2D5', label: 'Cream' },
+    { value: '#FFFFFF', label: 'White' },
+  ]
+  
+  return (
+    <div>
+      <label className="block text-xs font-bold uppercase tracking-wide text-[#888] mb-1">
+        {label}
+      </label>
+      <div className="flex gap-2">
+        <div className="flex gap-1 flex-wrap">
+          {presetColors.map(color => (
+            <button
+              key={color.value || 'default'}
+              onClick={() => onChange(color.value)}
+              className={`w-6 h-6 rounded border-2 ${
+                value === color.value ? 'border-[#CCAA4C]' : 'border-[#353535]'
+              }`}
+              style={{ backgroundColor: color.value || '#252525' }}
+              title={color.label}
+            />
+          ))}
+        </div>
+        <input
+          type="color"
+          value={value || '#000000'}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-8 h-6 rounded cursor-pointer"
+        />
+      </div>
+    </div>
+  )
 }
 
 // Reusable field components
@@ -383,11 +467,42 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
               ]}
               onChange={(v) => updateProp('columns', parseInt(v))}
             />
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#888] mt-4">
-              Posters
-            </label>
+            <div className="flex items-center justify-between mt-4">
+              <label className="text-xs font-bold uppercase tracking-wide text-[#888]">
+                Posters ({(block.props.posters || []).length})
+              </label>
+              <button
+                onClick={() => {
+                  const newPoster = { 
+                    id: `poster_${Date.now()}`, 
+                    title: 'New Poster', 
+                    description: 'Poster description...', 
+                    imageUrl: '',
+                    link: '/',
+                    reportNumber: `Report #${(block.props.posters?.length || 0) + 1}`,
+                    buttonText: 'View'
+                  }
+                  updateProp('posters', [...(block.props.posters || []), newPoster])
+                }}
+                className="text-xs text-[#CCAA4C] hover:text-white font-bold uppercase"
+              >
+                + Add Poster
+              </button>
+            </div>
             {(block.props.posters || []).map((poster: any, i: number) => (
               <div key={poster.id} className="p-3 bg-[#1a1a1a] border border-[#353535] rounded space-y-2 mb-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-[#CCAA4C] text-xs font-bold">Poster #{i + 1}</span>
+                  <button
+                    onClick={() => {
+                      const newPosters = block.props.posters.filter((_: any, idx: number) => idx !== i)
+                      updateProp('posters', newPosters)
+                    }}
+                    className="text-xs text-red-400 hover:text-red-300"
+                  >
+                    Remove
+                  </button>
+                </div>
                 <TextField
                   label="Title"
                   value={poster.title || ''}
@@ -450,11 +565,34 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
               max={10000}
               onChange={(v) => updateProp('interval', v)}
             />
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#888] mt-4">
-              Facts ({(block.props.facts || []).length})
-            </label>
+            <div className="flex items-center justify-between mt-4">
+              <label className="text-xs font-bold uppercase tracking-wide text-[#888]">
+                Facts ({(block.props.facts || []).length})
+              </label>
+              <button
+                onClick={() => {
+                  const newFact = { id: `fact_${Date.now()}`, title: 'New Fact Title', fact: 'Enter your fact here...' }
+                  updateProp('facts', [...(block.props.facts || []), newFact])
+                }}
+                className="text-xs text-[#CCAA4C] hover:text-white font-bold uppercase"
+              >
+                + Add Fact
+              </button>
+            </div>
             {(block.props.facts || []).map((fact: any, i: number) => (
               <div key={fact.id} className="p-3 bg-[#1a1a1a] border border-[#353535] rounded space-y-2 mb-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[#CCAA4C] text-xs font-bold">Fact #{i + 1}</span>
+                  <button
+                    onClick={() => {
+                      const newFacts = block.props.facts.filter((_: any, idx: number) => idx !== i)
+                      updateProp('facts', newFacts)
+                    }}
+                    className="text-xs text-red-400 hover:text-red-300"
+                  >
+                    Remove
+                  </button>
+                </div>
                 <TextField
                   label="Title"
                   value={fact.title || ''}
@@ -511,11 +649,40 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
                 />
               </div>
             )}
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#888] mt-4">
-              Broadcasts
-            </label>
+            <div className="flex items-center justify-between mt-4">
+              <label className="text-xs font-bold uppercase tracking-wide text-[#888]">
+                Broadcasts ({(block.props.broadcasts || []).length})
+              </label>
+              <button
+                onClick={() => {
+                  const newBroadcast = { 
+                    id: `broadcast_${Date.now()}`, 
+                    title: 'New Broadcast', 
+                    date: new Date().toLocaleDateString(),
+                    thumbnailUrl: '',
+                    link: '/shows'
+                  }
+                  updateProp('broadcasts', [...(block.props.broadcasts || []), newBroadcast])
+                }}
+                className="text-xs text-[#CCAA4C] hover:text-white font-bold uppercase"
+              >
+                + Add Broadcast
+              </button>
+            </div>
             {(block.props.broadcasts || []).map((item: any, i: number) => (
               <div key={item.id} className="p-3 bg-[#1a1a1a] border border-[#353535] rounded space-y-2 mb-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[#CCAA4C] text-xs font-bold">Broadcast #{i + 1}</span>
+                  <button
+                    onClick={() => {
+                      const newBroadcasts = block.props.broadcasts.filter((_: any, idx: number) => idx !== i)
+                      updateProp('broadcasts', newBroadcasts)
+                    }}
+                    className="text-xs text-red-400 hover:text-red-300"
+                  >
+                    Remove
+                  </button>
+                </div>
                 <TextField
                   label="Title"
                   value={item.title || ''}
@@ -546,11 +713,39 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
       case 'categoryIconGrid':
         return (
           <>
-            <label className="block text-xs font-bold uppercase tracking-wide text-[#888]">
-              Categories ({(block.props.categories || []).length})
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wide text-[#888]">
+                Categories ({(block.props.categories || []).length})
+              </label>
+              <button
+                onClick={() => {
+                  const newCategory = { 
+                    id: `cat_${Date.now()}`, 
+                    label: 'New Category', 
+                    imageUrl: '',
+                    link: '/'
+                  }
+                  updateProp('categories', [...(block.props.categories || []), newCategory])
+                }}
+                className="text-xs text-[#CCAA4C] hover:text-white font-bold uppercase"
+              >
+                + Add Category
+              </button>
+            </div>
             {(block.props.categories || []).map((cat: any, i: number) => (
               <div key={cat.id} className="p-3 bg-[#1a1a1a] border border-[#353535] rounded space-y-2 mb-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[#CCAA4C] text-xs font-bold">Category #{i + 1}</span>
+                  <button
+                    onClick={() => {
+                      const newCategories = block.props.categories.filter((_: any, idx: number) => idx !== i)
+                      updateProp('categories', newCategories)
+                    }}
+                    className="text-xs text-red-400 hover:text-red-300"
+                  >
+                    Remove
+                  </button>
+                </div>
                 <TextField
                   label="Label"
                   value={cat.label || ''}
@@ -840,6 +1035,124 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
           </>
         )
 
+      case 'buttonGroup':
+        return (
+          <>
+            <SelectField
+              label="Alignment"
+              value={block.props.alignment || 'center'}
+              options={[
+                { value: 'left', label: 'Left' },
+                { value: 'center', label: 'Center' },
+                { value: 'right', label: 'Right' },
+              ]}
+              onChange={(v) => updateProp('alignment', v)}
+            />
+            <SelectField
+              label="Direction"
+              value={block.props.direction || 'horizontal'}
+              options={[
+                { value: 'horizontal', label: 'Horizontal' },
+                { value: 'vertical', label: 'Stacked' },
+              ]}
+              onChange={(v) => updateProp('direction', v)}
+            />
+            <SelectField
+              label="Spacing"
+              value={block.props.spacing || 'normal'}
+              options={[
+                { value: 'tight', label: 'Tight' },
+                { value: 'normal', label: 'Normal' },
+                { value: 'wide', label: 'Wide' },
+              ]}
+              onChange={(v) => updateProp('spacing', v)}
+            />
+
+            {/* Buttons List */}
+            <div className="mt-4 pt-4 border-t border-[#353535]">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-xs font-bold uppercase tracking-wide text-[#888]">
+                  Buttons ({(block.props.buttons || []).length})
+                </label>
+                <button
+                  onClick={() => {
+                    const newButton = {
+                      id: `btn_${Date.now()}`,
+                      text: 'New Button',
+                      link: '/',
+                      style: 'primary',
+                      size: 'medium',
+                      icon: '',
+                    }
+                    updateProp('buttons', [...(block.props.buttons || []), newButton])
+                  }}
+                  className="text-xs text-[#CCAA4C] hover:text-white font-bold uppercase"
+                >
+                  + Add Button
+                </button>
+              </div>
+
+              {(block.props.buttons || []).map((btn: any, i: number) => (
+                <div key={btn.id} className="p-3 bg-[#1a1a1a] border border-[#353535] rounded space-y-2 mb-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#CCAA4C] text-xs font-bold">Button {i + 1}</span>
+                    <button
+                      onClick={() => {
+                        const newButtons = block.props.buttons.filter((_: any, idx: number) => idx !== i)
+                        updateProp('buttons', newButtons)
+                      }}
+                      className="text-xs text-red-400 hover:text-red-300"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <TextField
+                    label="Text"
+                    value={btn.text || ''}
+                    onChange={(v) => updateArrayItem('buttons', i, { text: v })}
+                    placeholder="Button text..."
+                  />
+                  <TextField
+                    label="Link"
+                    value={btn.link || ''}
+                    onChange={(v) => updateArrayItem('buttons', i, { link: v })}
+                    placeholder="/page-url"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <SelectField
+                      label="Style"
+                      value={btn.style || 'primary'}
+                      options={[
+                        { value: 'primary', label: '🟡 Primary' },
+                        { value: 'secondary', label: '⬛ Secondary' },
+                        { value: 'outline', label: '🔲 Outline' },
+                        { value: 'ghost', label: '👻 Ghost' },
+                      ]}
+                      onChange={(v) => updateArrayItem('buttons', i, { style: v })}
+                    />
+                    <SelectField
+                      label="Size"
+                      value={btn.size || 'medium'}
+                      options={[
+                        { value: 'small', label: 'Small' },
+                        { value: 'medium', label: 'Medium' },
+                        { value: 'large', label: 'Large' },
+                      ]}
+                      onChange={(v) => updateArrayItem('buttons', i, { size: v })}
+                    />
+                  </div>
+                  <TextField
+                    label="Icon (emoji)"
+                    value={btn.icon || ''}
+                    onChange={(v) => updateArrayItem('buttons', i, { icon: v })}
+                    placeholder="🚀"
+                  />
+                </div>
+              ))}
+            </div>
+          </>
+        )
+
       default:
         return (
           <p className="text-[#666] text-sm">
@@ -849,10 +1162,51 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
     }
   }
 
+  // Helper to update styling
+  const updateStyling = (key: keyof BlockStyling, value: any) => {
+    onUpdate({
+      styling: { ...(block.styling || {}), [key]: value },
+    })
+  }
+
+  // Helper to update buttons array
+  const updateButtons = (newButtons: BlockButton[]) => {
+    onUpdate({ buttons: newButtons })
+  }
+
+  const addButton = () => {
+    const newButton: BlockButton = {
+      id: `btn_${Date.now()}`,
+      text: 'New Button',
+      link: '/',
+      style: 'primary',
+      size: 'medium',
+      icon: '',
+    }
+    updateButtons([...(block.buttons || []), newButton])
+  }
+
+  const updateButton = (index: number, updates: Partial<BlockButton>) => {
+    const newButtons = [...(block.buttons || [])]
+    newButtons[index] = { ...newButtons[index], ...updates }
+    updateButtons(newButtons)
+  }
+
+  const removeButton = (index: number) => {
+    updateButtons((block.buttons || []).filter((_: any, i: number) => i !== index))
+  }
+
+  // Helper to update buttons config
+  const updateButtonsConfig = (key: keyof ButtonsConfig, value: any) => {
+    onUpdate({
+      buttonsConfig: { ...(block.buttonsConfig || { position: 'bottom-center', spacing: 'normal', direction: 'horizontal' }), [key]: value },
+    })
+  }
+
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-0">
       {/* Block Header */}
-      <div className="flex items-center justify-between">
+      <div className="p-4 flex items-center justify-between">
         <div>
           <h3 className="text-white font-bold flex items-center gap-2">
             <span>{definition?.icon}</span>
@@ -887,18 +1241,300 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
 
       {/* Variant Selector */}
       {definition && definition.variants.length > 1 && (
-        <SelectField
-          label="Variant"
-          value={block.variant}
-          options={definition.variants.map(v => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))}
-          onChange={(v) => onUpdate({ variant: v })}
-        />
+        <div className="px-4 pb-4">
+          <SelectField
+            label="Variant"
+            value={block.variant}
+            options={definition.variants.map(v => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))}
+            onChange={(v) => onUpdate({ variant: v })}
+          />
+        </div>
       )}
 
-      {/* Block-specific settings */}
-      <div className="space-y-4 pt-4 border-t border-[#353535]">
-        {renderBlockSpecificSettings()}
-      </div>
+      {/* Block Content Settings */}
+      <CollapsibleSection title="Content" icon={Type} defaultOpen>
+        <div className="space-y-4">
+          {renderBlockSpecificSettings()}
+        </div>
+      </CollapsibleSection>
+
+      {/* Background & Colors */}
+      <CollapsibleSection title="Background & Colors" icon={Palette}>
+        <ColorField
+          label="Background Color"
+          value={block.styling?.backgroundColor || ''}
+          onChange={(v) => updateStyling('backgroundColor', v)}
+        />
+        <TextField
+          label="Background Gradient"
+          value={block.styling?.backgroundGradient || ''}
+          onChange={(v) => updateStyling('backgroundGradient', v)}
+          placeholder="linear-gradient(to right, #CCAA4C, #FF6B35)"
+        />
+        <MediaUpload
+          label="Background Image"
+          value={block.styling?.backgroundImage || ''}
+          onChange={(v) => updateStyling('backgroundImage', v)}
+          accept="image"
+          placeholder="Upload or paste image URL"
+        />
+        <ColorField
+          label="Accent Color"
+          value={block.styling?.accentColor || ''}
+          onChange={(v) => updateStyling('accentColor', v)}
+        />
+        <ColorField
+          label="Text Color"
+          value={block.styling?.textColor || ''}
+          onChange={(v) => updateStyling('textColor', v)}
+        />
+      </CollapsibleSection>
+
+      {/* Background Video */}
+      <CollapsibleSection title="Background Video" icon={Film}>
+        <MediaUpload
+          label="Video File"
+          value={block.styling?.backgroundVideo || ''}
+          onChange={(v) => updateStyling('backgroundVideo', v)}
+          accept="video"
+          placeholder="Upload MP4/WebM video"
+        />
+        {(block.styling?.backgroundImage || block.styling?.backgroundVideo) && (
+          <SliderField
+            label="Overlay Darkness"
+            value={block.styling?.backgroundOverlay ?? 50}
+            min={0}
+            max={100}
+            onChange={(v) => updateStyling('backgroundOverlay', v)}
+          />
+        )}
+        <p className="text-[10px] text-[#555] mt-2">
+          Video will autoplay muted and loop. Image is used as fallback.
+        </p>
+      </CollapsibleSection>
+
+      {/* Texture Overlay */}
+      <CollapsibleSection title="Texture Overlay" icon={Image}>
+        <SelectField
+          label="Texture"
+          value={block.styling?.textureOverlay || 'none'}
+          options={[
+            { value: 'none', label: 'None' },
+            { value: 'halftone', label: 'Halftone Dots' },
+            { value: 'noise', label: 'Noise/Grain' },
+            { value: 'scanlines', label: 'Scanlines' },
+            { value: 'metal', label: 'Brushed Metal' },
+            { value: 'paper', label: 'Paper Texture' },
+          ]}
+          onChange={(v) => updateStyling('textureOverlay', v)}
+        />
+        {block.styling?.textureOverlay && block.styling.textureOverlay !== 'none' && (
+          <SliderField
+            label="Texture Opacity"
+            value={block.styling?.textureOpacity ?? 20}
+            min={5}
+            max={50}
+            onChange={(v) => updateStyling('textureOpacity', v)}
+          />
+        )}
+      </CollapsibleSection>
+
+      {/* Frame & Border */}
+      <CollapsibleSection title="Frame & Border" icon={Frame}>
+        <SelectField
+          label="Frame Style"
+          value={block.styling?.frameStyle || 'none'}
+          options={[
+            { value: 'none', label: 'None' },
+            { value: 'solid', label: 'Solid' },
+            { value: 'thick', label: 'Thick' },
+            { value: 'industrial', label: 'Industrial' },
+            { value: 'double', label: 'Double' },
+            { value: 'dashed', label: 'Dashed' },
+          ]}
+          onChange={(v) => updateStyling('frameStyle', v)}
+        />
+        {block.styling?.frameStyle && block.styling.frameStyle !== 'none' && (
+          <ColorField
+            label="Frame Color"
+            value={block.styling?.frameColor || '#CCAA4C'}
+            onChange={(v) => updateStyling('frameColor', v)}
+          />
+        )}
+        <SelectField
+          label="Border Radius"
+          value={block.styling?.borderRadius || 'none'}
+          options={[
+            { value: 'none', label: 'None (Square)' },
+            { value: 'small', label: 'Small' },
+            { value: 'medium', label: 'Medium' },
+            { value: 'large', label: 'Large' },
+          ]}
+          onChange={(v) => updateStyling('borderRadius', v)}
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <SelectField
+            label="Padding Top"
+            value={block.styling?.paddingTop || 'medium'}
+            options={[
+              { value: 'none', label: 'None' },
+              { value: 'small', label: 'Small' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'large', label: 'Large' },
+              { value: 'xlarge', label: 'X-Large' },
+            ]}
+            onChange={(v) => updateStyling('paddingTop', v)}
+          />
+          <SelectField
+            label="Padding Bottom"
+            value={block.styling?.paddingBottom || 'medium'}
+            options={[
+              { value: 'none', label: 'None' },
+              { value: 'small', label: 'Small' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'large', label: 'Large' },
+              { value: 'xlarge', label: 'X-Large' },
+            ]}
+            onChange={(v) => updateStyling('paddingBottom', v)}
+          />
+        </div>
+      </CollapsibleSection>
+
+      {/* Additional Buttons (Inside Block) */}
+      <CollapsibleSection title="Block Buttons" icon={Plus}>
+        <p className="text-[10px] text-[#666] mb-3">
+          Add buttons that appear inside this block
+        </p>
+        
+        {/* Button Position Settings */}
+        {(block.buttons?.length || 0) > 0 && (
+          <div className="p-3 bg-[#252525] rounded mb-4 space-y-3">
+            <div className="flex items-center gap-2 text-[#CCAA4C] text-xs font-bold uppercase">
+              <Move className="w-3 h-3" /> Button Position
+            </div>
+            <SelectField
+              label="Position"
+              value={block.buttonsConfig?.position || 'bottom-center'}
+              options={[
+                { value: 'bottom-center', label: 'Bottom Center' },
+                { value: 'bottom-left', label: 'Bottom Left' },
+                { value: 'bottom-right', label: 'Bottom Right' },
+                { value: 'top-center', label: 'Top Center' },
+                { value: 'top-left', label: 'Top Left' },
+                { value: 'top-right', label: 'Top Right' },
+                { value: 'center', label: 'Center' },
+                { value: 'inline', label: 'Inline (After Content)' },
+              ]}
+              onChange={(v) => updateButtonsConfig('position', v)}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <SelectField
+                label="Direction"
+                value={block.buttonsConfig?.direction || 'horizontal'}
+                options={[
+                  { value: 'horizontal', label: 'Horizontal' },
+                  { value: 'vertical', label: 'Stacked' },
+                ]}
+                onChange={(v) => updateButtonsConfig('direction', v)}
+              />
+              <SelectField
+                label="Spacing"
+                value={block.buttonsConfig?.spacing || 'normal'}
+                options={[
+                  { value: 'tight', label: 'Tight' },
+                  { value: 'normal', label: 'Normal' },
+                  { value: 'wide', label: 'Wide' },
+                ]}
+                onChange={(v) => updateButtonsConfig('spacing', v)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <SliderField
+                label="Margin Top (px)"
+                value={block.buttonsConfig?.marginTop || 0}
+                min={0}
+                max={100}
+                onChange={(v) => updateButtonsConfig('marginTop', v)}
+              />
+              <SliderField
+                label="Margin Bottom (px)"
+                value={block.buttonsConfig?.marginBottom || 0}
+                min={0}
+                max={100}
+                onChange={(v) => updateButtonsConfig('marginBottom', v)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Button List */}
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs text-[#888]">
+            {(block.buttons || []).length} button(s)
+          </span>
+          <button
+            onClick={addButton}
+            className="text-xs text-[#CCAA4C] hover:text-white font-bold uppercase flex items-center gap-1"
+          >
+            <Plus className="w-3 h-3" /> Add Button
+          </button>
+        </div>
+
+        {(block.buttons || []).map((btn: BlockButton, i: number) => (
+          <div key={btn.id} className="p-3 bg-[#1a1a1a] border border-[#353535] rounded space-y-2 mb-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[#CCAA4C] text-xs font-bold">Button {i + 1}</span>
+              <button
+                onClick={() => removeButton(i)}
+                className="text-xs text-red-400 hover:text-red-300"
+              >
+                Remove
+              </button>
+            </div>
+            <TextField
+              label="Text"
+              value={btn.text || ''}
+              onChange={(v) => updateButton(i, { text: v })}
+              placeholder="Button text..."
+            />
+            <TextField
+              label="Link"
+              value={btn.link || ''}
+              onChange={(v) => updateButton(i, { link: v })}
+              placeholder="/page-url"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <SelectField
+                label="Style"
+                value={btn.style || 'primary'}
+                options={[
+                  { value: 'primary', label: '🟡 Primary' },
+                  { value: 'secondary', label: '⬛ Secondary' },
+                  { value: 'outline', label: '🔲 Outline' },
+                  { value: 'ghost', label: '👻 Ghost' },
+                ]}
+                onChange={(v) => updateButton(i, { style: v as any })}
+              />
+              <SelectField
+                label="Size"
+                value={btn.size || 'medium'}
+                options={[
+                  { value: 'small', label: 'Small' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'large', label: 'Large' },
+                ]}
+                onChange={(v) => updateButton(i, { size: v as any })}
+              />
+            </div>
+            <TextField
+              label="Icon (emoji)"
+              value={btn.icon || ''}
+              onChange={(v) => updateButton(i, { icon: v })}
+              placeholder="🚀"
+            />
+          </div>
+        ))}
+      </CollapsibleSection>
     </div>
   )
 }

@@ -48,17 +48,20 @@ function SortableBlock({ block, isSelected, onSelect, onDelete, onDuplicate }: S
     >
       {/* Block Wrapper */}
       <div
-        onClick={onSelect}
+        onClick={(e) => {
+          e.stopPropagation()
+          onSelect()
+        }}
         className={`relative border-2 transition-all cursor-pointer ${
           isSelected
             ? 'border-[#CCAA4C] shadow-[0_0_20px_rgba(204,170,76,0.3)]'
             : 'border-transparent hover:border-[#CCAA4C]/50'
         } ${!block.visible ? 'opacity-50' : ''}`}
       >
-        {/* Block Controls */}
+        {/* Block Controls - Top Bar */}
         <div
-          className={`absolute -top-10 left-0 right-0 flex items-center justify-between px-2 py-1 bg-[#252525] rounded-t border border-[#353535] transition-opacity ${
-            isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          className={`absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 py-2 bg-[#252525]/95 backdrop-blur-sm border-b border-[#CCAA4C] transition-all ${
+            isSelected ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full group-hover:opacity-100 group-hover:translate-y-0'
           }`}
         >
           {/* Left - Drag Handle & Type */}
@@ -66,11 +69,11 @@ function SortableBlock({ block, isSelected, onSelect, onDelete, onDuplicate }: S
             <button
               {...attributes}
               {...listeners}
-              className="p-1 text-[#666] hover:text-white cursor-grab active:cursor-grabbing"
+              className="p-1 text-[#888] hover:text-white cursor-grab active:cursor-grabbing"
             >
               <GripVertical className="w-4 h-4" />
             </button>
-            <span className="text-xs text-[#CCAA4C] font-bold uppercase">
+            <span className="text-xs text-[#CCAA4C] font-bold uppercase tracking-wide">
               {definition?.icon} {definition?.name}
             </span>
           </div>
@@ -79,14 +82,14 @@ function SortableBlock({ block, isSelected, onSelect, onDelete, onDuplicate }: S
           <div className="flex items-center gap-1">
             <button
               onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
-              className="p-1 text-[#666] hover:text-white"
+              className="p-1.5 text-[#888] hover:text-white hover:bg-[#353535] rounded"
               title="Duplicate"
             >
               <Copy className="w-4 h-4" />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="p-1 text-[#666] hover:text-red-500"
+              className="p-1.5 text-[#888] hover:text-red-500 hover:bg-red-500/10 rounded"
               title="Delete"
             >
               <Trash2 className="w-4 h-4" />
@@ -94,8 +97,19 @@ function SortableBlock({ block, isSelected, onSelect, onDelete, onDuplicate }: S
           </div>
         </div>
 
+        {/* Click to Edit Indicator */}
+        {!isSelected && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            <span className="bg-[#CCAA4C] text-[#1a1a1a] px-4 py-2 rounded font-bold text-sm shadow-lg">
+              Click to Edit
+            </span>
+          </div>
+        )}
+
         {/* Block Content */}
-        <BlockRenderer block={block} isEditing />
+        <div className="pointer-events-none">
+          <BlockRenderer block={block} isEditing />
+        </div>
       </div>
     </div>
   )
