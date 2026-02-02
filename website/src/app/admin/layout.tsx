@@ -46,13 +46,14 @@ export default function AdminLayout({
   const router = useRouter();
   const { user, profile, loading, signOut } = useAuth();
   const { role, isAdmin, isGod, isSales } = useRole();
+  const redirectUrl = `/login?redirect=${encodeURIComponent(pathname || "/admin")}`;
 
   // Redirect if not authenticated or not authorized
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login?redirect=/admin');
+      router.push(redirectUrl);
     }
-  }, [loading, user, router]);
+  }, [loading, user, router, redirectUrl]);
 
   // Filter nav items based on role
   const filteredNavItems = navItems.filter(item => {
@@ -73,8 +74,36 @@ export default function AdminLayout({
     );
   }
 
-  if (!user || (!isAdmin && !isGod && !isSales)) {
-    return null;
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#1f1c13] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[#252525] border border-[#353535] rounded-lg p-6 text-center">
+          <h2 className="text-white text-lg font-bold mb-2">Sign in required</h2>
+          <p className="text-[#AEACA1] text-sm mb-4">
+            Please sign in to access the Admin Console.
+          </p>
+          <Link
+            href={redirectUrl}
+            className="inline-flex items-center justify-center px-4 py-2 bg-[#CCAA4C] text-[#353535] rounded font-bold text-sm hover:bg-[#CCAA4C]/80 transition-colors"
+          >
+            Go to Login
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin && !isGod && !isSales) {
+    return (
+      <div className="min-h-screen bg-[#1f1c13] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[#252525] border border-red-500/50 rounded-lg p-6 text-center">
+          <h2 className="text-white text-lg font-bold mb-2">Access denied</h2>
+          <p className="text-[#AEACA1] text-sm">
+            Your account does not have permission to view this area.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

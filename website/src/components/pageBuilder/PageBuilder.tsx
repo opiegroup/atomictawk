@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { 
   PageLayout, 
   PageBlock, 
@@ -218,7 +218,6 @@ export function PageBuilder({
     <div className="h-screen flex flex-col bg-[#1a1a1a]">
       {/* Top Toolbar */}
       <div className="h-14 bg-[#252525] border-b-4 border-[#CCAA4C] flex items-center justify-between px-4">
-        {/* Left - Page Info */}
         <div className="flex items-center gap-4">
           <h1 className="text-white font-bold uppercase tracking-wider text-sm">
             Page Builder
@@ -230,7 +229,6 @@ export function PageBuilder({
           )}
         </div>
 
-        {/* Center - View Mode */}
         <div className="flex items-center gap-1 bg-[#353535] rounded p-1">
           {[
             { mode: 'desktop' as ViewMode, icon: Monitor, label: 'Desktop' },
@@ -252,7 +250,6 @@ export function PageBuilder({
           ))}
         </div>
 
-        {/* Right - Actions */}
         <div className="flex items-center gap-2">
           <button
             onClick={handleSave}
@@ -310,7 +307,6 @@ export function PageBuilder({
 
         {/* Right Panel - Settings */}
         <div className="w-80 bg-[#252525] border-l-2 border-[#353535] flex flex-col">
-          {/* Panel Tabs */}
           <div className="flex border-b-2 border-[#353535]">
             <button
               onClick={() => setRightPanelTab('block')}
@@ -335,7 +331,6 @@ export function PageBuilder({
             </button>
           </div>
 
-          {/* Panel Content */}
           <div className="flex-1 overflow-y-auto">
             {rightPanelTab === 'block' ? (
               selectedBlock ? (

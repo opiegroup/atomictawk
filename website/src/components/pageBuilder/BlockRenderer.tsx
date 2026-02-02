@@ -9,8 +9,48 @@ import {
   Users, Camera, Tag, Tv, Play, Radio, Headphones, Share2, Heart,
   AlertTriangle, Wrench, ChevronLeft, ChevronRight, FileText
 } from 'lucide-react'
-import { FeaturedContent } from '@/components/FeaturedContent'
-import { LatestBroadcasts } from '@/components/LatestBroadcasts'
+// Placeholder components - actual data fetching disabled in page builder preview
+function FeaturedContent({ heading, maxItems, showHeading = true }: any) {
+  return (
+    <div className="max-w-[1200px] mx-auto px-6 py-16">
+      {showHeading && (
+        <h2 className="text-3xl font-black uppercase tracking-tighter bg-[#353535] text-white px-6 py-2 inline-block mb-8">
+          {heading || 'Featured Content'}
+        </h2>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {Array.from({ length: maxItems || 3 }).map((_, i) => (
+          <div key={i} className="bg-[#E3E2D5] p-4 border-4 border-[#353535]">
+            <div className="aspect-[4/5] bg-[#353535]/20 mb-4" />
+            <div className="h-6 bg-[#353535]/30 mb-2" />
+            <div className="h-4 bg-[#353535]/20" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function LatestBroadcasts({ heading, maxItems, variant }: any) {
+  return (
+    <div className="max-w-[1200px] mx-auto px-6 py-16">
+      <h2 className="text-3xl font-black uppercase tracking-tighter bg-[#353535] text-white px-6 py-2 inline-block mb-8">
+        {heading || 'Latest Broadcasts'}
+      </h2>
+      <div className="space-y-4">
+        {Array.from({ length: maxItems || 5 }).map((_, i) => (
+          <div key={i} className="flex gap-4 bg-[#E3E2D5] p-4 border-2 border-[#353535]">
+            <div className="w-32 h-20 bg-[#353535]/20" />
+            <div className="flex-1">
+              <div className="h-5 bg-[#353535]/30 mb-2 w-3/4" />
+              <div className="h-4 bg-[#353535]/20 w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 interface BlockRendererProps {
   block: PageBlock
