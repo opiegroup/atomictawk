@@ -5,6 +5,32 @@ import { PageBlock, getBlockDefinition, THEME_COLORS, ThemeColor, BlockStyling, 
 import { Trash2, Copy, Eye, EyeOff, ChevronDown, ChevronRight, Plus, Palette, Image, Frame, Type, Film, Move } from 'lucide-react'
 import { MediaUpload } from './MediaUpload'
 
+// Simple text editor (Rich text editor removed temporarily for stability)
+function RichTextEditorField({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+}) {
+  return (
+    <div>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={8}
+        className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#353535] rounded text-white text-sm focus:outline-none focus:border-[#CCAA4C] resize-none"
+      />
+      <p className="text-[10px] text-[#555] mt-1">
+        Use HTML tags for formatting: &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt;, &lt;a href=""&gt;link&lt;/a&gt;
+      </p>
+    </div>
+  )
+}
+
 interface BlockSettingsProps {
   block: PageBlock
   onUpdate: (updates: Partial<PageBlock>) => void
@@ -878,11 +904,12 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
               onChange={(v) => updateProp('subtitle', v)}
               placeholder="Enter subtitle..."
             />
-            <TextField
-              label="Background Image URL"
+            <MediaUpload
+              label="Background Image"
               value={block.props.backgroundImage || ''}
               onChange={(v) => updateProp('backgroundImage', v)}
-              placeholder="/images/..."
+              accept="image"
+              placeholder="Upload or paste image URL"
             />
             <SliderField
               label="Overlay Opacity"
@@ -913,6 +940,23 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
               ]}
               onChange={(v) => updateProp('alignment', v)}
             />
+            
+            {/* Quick Color Settings (also available in Background & Colors section) */}
+            <div className="mt-4 pt-4 border-t border-[#353535]">
+              <p className="text-[10px] text-[#666] mb-3 uppercase tracking-wide">Quick Color Settings</p>
+              <ColorField
+                label="Title Color"
+                value={block.styling?.textColor || '#FFFFFF'}
+                onChange={(v) => updateStyling('textColor', v)}
+              />
+              <div className="mt-3">
+                <ColorField
+                  label="Subtitle/Accent Color"
+                  value={block.styling?.accentColor || '#CCAA4C'}
+                  onChange={(v) => updateStyling('accentColor', v)}
+                />
+              </div>
+            </div>
           </>
         )
 
@@ -935,13 +979,22 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
               ]}
               onChange={(v) => updateProp('headingSize', v)}
             />
-            <TextField
-              label="Body Text"
-              value={block.props.body || ''}
-              onChange={(v) => updateProp('body', v)}
-              placeholder="Enter content..."
-              multiline
-            />
+            
+            {/* Rich Text Editor for Body */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-[#888] mb-2">
+                Body Content
+              </label>
+              <RichTextEditorField
+                value={block.props.body || ''}
+                onChange={(html) => updateProp('body', html)}
+                placeholder="Write your content here... Use the toolbar to format text."
+              />
+              <p className="text-[10px] text-[#555] mt-2">
+                Use the toolbar to add headings, bold, italic, links, lists, and more.
+              </p>
+            </div>
+            
             <SelectField
               label="Alignment"
               value={block.props.alignment || 'left'}

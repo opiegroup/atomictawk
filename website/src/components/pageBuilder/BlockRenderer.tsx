@@ -1075,48 +1075,84 @@ function BrandStatementBlock({ block }: { block: PageBlock }) {
 function HeroBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
   const { title, subtitle, backgroundImage, overlayOpacity, buttonText, buttonLink, alignment } = block.props
   
+  // Get colors from styling or use defaults
+  const textColor = block.styling?.textColor || '#FFFFFF'
+  const accentColor = block.styling?.accentColor || '#CCAA4C'
+  const bgColor = block.styling?.backgroundColor || ''
+  const bgGradient = block.styling?.backgroundGradient || ''
+  
   const alignmentClasses = {
     left: 'text-left items-start',
     center: 'text-center items-center',
     right: 'text-right items-end',
   }
 
+  // Build background style
+  const backgroundStyle: React.CSSProperties = {}
+  if (backgroundImage && !block.styling?.backgroundVideo) {
+    backgroundStyle.backgroundImage = `url(${backgroundImage})`
+    backgroundStyle.backgroundSize = 'cover'
+    backgroundStyle.backgroundPosition = 'center'
+  } else if (bgGradient) {
+    backgroundStyle.background = bgGradient
+  } else if (bgColor) {
+    backgroundStyle.backgroundColor = bgColor
+  }
+
+  const hasBackground = backgroundImage || bgColor || bgGradient || block.styling?.backgroundVideo
+
   return (
     <div 
       className={`relative flex flex-col justify-center px-8 py-16 min-h-[400px] ${alignmentClasses[alignment as keyof typeof alignmentClasses] || alignmentClasses.center}`}
-      style={{
-        backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
+      style={backgroundStyle}
     >
-      <div 
-        className="absolute inset-0 bg-black"
-        style={{ opacity: (overlayOpacity || 60) / 100 }}
-      />
+      {/* Overlay - only show if there's a background image/video */}
+      {(backgroundImage || block.styling?.backgroundVideo) && (
+        <div 
+          className="absolute inset-0 bg-black"
+          style={{ opacity: (overlayOpacity || 60) / 100 }}
+        />
+      )}
       
       <div className="relative z-10 max-w-4xl">
         {title && (
           <h1 
-            className="text-4xl md:text-6xl font-black uppercase tracking-tight text-white mb-4"
-            style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+            className="text-4xl md:text-6xl font-black uppercase tracking-tight mb-4"
+            style={{ fontFamily: 'var(--font-oswald), sans-serif', color: textColor }}
           >
             {title}
           </h1>
         )}
         {subtitle && (
-          <p className="text-xl text-[#CCAA4C] uppercase tracking-widest mb-8">
+          <p 
+            className="text-xl uppercase tracking-widest mb-8"
+            style={{ color: accentColor }}
+          >
             {subtitle}
           </p>
         )}
         {buttonText && (
-          <span className="inline-block px-8 py-3 bg-[#CCAA4C] text-black font-bold uppercase tracking-wide">
-            {buttonText}
-          </span>
+          isEditing ? (
+            <span 
+              className="inline-block px-8 py-3 font-bold uppercase tracking-wide"
+              style={{ backgroundColor: accentColor, color: bgColor || '#1a1a1a' }}
+            >
+              {buttonText}
+            </span>
+          ) : (
+            <Link 
+              href={buttonLink || '/'}
+              className="inline-block px-8 py-3 font-bold uppercase tracking-wide hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: accentColor, color: bgColor || '#1a1a1a' }}
+            >
+              {buttonText}
+            </Link>
+          )
         )}
       </div>
 
-      {!backgroundImage && (
+      {/* Fallback gradient if no background set */}
+      {!hasBackground && (
         <div className="absolute inset-0 bg-gradient-to-br from-[#353535] to-[#1a1a1a] -z-10" />
       )}
     </div>
@@ -1126,29 +1162,131 @@ function HeroBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean 
 function RichTextBlock({ block }: { block: PageBlock }) {
   const { heading, headingSize, body, alignment } = block.props
 
+  // Get colors from styling
+  const textColor = block.styling?.textColor || '#AEACA1'
+  const accentColor = block.styling?.accentColor || '#CCAA4C'
+  const bgColor = block.styling?.backgroundColor || ''
+
   const headingSizes = {
     small: 'text-xl',
     medium: 'text-2xl md:text-3xl',
     large: 'text-3xl md:text-4xl',
   }
 
+  const alignmentClasses = {
+    left: 'text-left',
+    center: 'text-center',
+    right: 'text-right',
+  }
+
+  // Check if body contains HTML
+  const isHTML = body && (body.includes('<') && body.includes('>'))
+
   return (
-    <div className="px-8 py-12">
-      <div className={`max-w-4xl mx-auto text-${alignment || 'left'}`}>
+    <div 
+      className="px-8 py-12"
+      style={{ backgroundColor: bgColor || undefined }}
+    >
+      <div className={`max-w-4xl mx-auto ${alignmentClasses[alignment as keyof typeof alignmentClasses] || alignmentClasses.left}`}>
         {heading && (
           <h2 
-            className={`${headingSizes[headingSize as keyof typeof headingSizes] || headingSizes.medium} font-bold text-white uppercase tracking-tight mb-4`}
-            style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+            className={`${headingSizes[headingSize as keyof typeof headingSizes] || headingSizes.medium} font-bold uppercase tracking-tight mb-6`}
+            style={{ fontFamily: 'var(--font-oswald), sans-serif', color: accentColor }}
           >
             {heading}
           </h2>
         )}
         {body && (
-          <div className="text-[#AEACA1] leading-relaxed whitespace-pre-wrap">
-            {body}
-          </div>
+          isHTML ? (
+            <div 
+              className="rich-text-content leading-relaxed prose prose-invert max-w-none"
+              style={{ color: textColor }}
+              dangerouslySetInnerHTML={{ __html: body }}
+            />
+          ) : (
+            <div 
+              className="leading-relaxed whitespace-pre-wrap"
+              style={{ color: textColor }}
+            >
+              {body}
+            </div>
+          )
         )}
       </div>
+      
+      {/* Rich text content styles */}
+      <style jsx global>{`
+        .rich-text-content h1,
+        .rich-text-content h2,
+        .rich-text-content h3,
+        .rich-text-content h4 {
+          color: ${accentColor};
+          font-family: var(--font-oswald), sans-serif;
+          font-weight: 700;
+          text-transform: uppercase;
+          margin-top: 1.5em;
+          margin-bottom: 0.5em;
+        }
+        .rich-text-content h1 { font-size: 2.25em; }
+        .rich-text-content h2 { font-size: 1.75em; }
+        .rich-text-content h3 { font-size: 1.5em; }
+        .rich-text-content h4 { font-size: 1.25em; }
+        .rich-text-content p {
+          margin-bottom: 1em;
+        }
+        .rich-text-content a {
+          color: ${accentColor};
+          text-decoration: underline;
+        }
+        .rich-text-content a:hover {
+          opacity: 0.8;
+        }
+        .rich-text-content strong, 
+        .rich-text-content b {
+          font-weight: 700;
+        }
+        .rich-text-content em,
+        .rich-text-content i {
+          font-style: italic;
+        }
+        .rich-text-content ul,
+        .rich-text-content ol {
+          margin-left: 1.5em;
+          margin-bottom: 1em;
+        }
+        .rich-text-content ul {
+          list-style-type: disc;
+        }
+        .rich-text-content ol {
+          list-style-type: decimal;
+        }
+        .rich-text-content li {
+          margin-bottom: 0.5em;
+        }
+        .rich-text-content blockquote {
+          border-left: 4px solid ${accentColor};
+          padding-left: 1em;
+          margin: 1em 0;
+          font-style: italic;
+          opacity: 0.9;
+        }
+        .rich-text-content pre,
+        .rich-text-content code {
+          background: rgba(0,0,0,0.3);
+          border-radius: 4px;
+          padding: 0.2em 0.4em;
+          font-family: monospace;
+        }
+        .rich-text-content pre {
+          padding: 1em;
+          overflow-x: auto;
+        }
+        .rich-text-content img {
+          max-width: 100%;
+          border-radius: 4px;
+          margin: 1em 0;
+        }
+      `}</style>
     </div>
   )
 }

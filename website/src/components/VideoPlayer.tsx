@@ -93,7 +93,7 @@ export function VideoPlayer({ youtubeId, title, autoplay = false }: VideoPlayerP
 
 // Compact video card for listings
 interface VideoCardProps {
-  youtubeId: string;
+  youtubeId?: string;
   title: string;
   description?: string;
   duration?: string;
@@ -101,6 +101,7 @@ interface VideoCardProps {
   date?: string;
   href: string;
   isLive?: boolean;
+  thumbnailUrl?: string; // Custom thumbnail for non-YouTube videos
 }
 
 export function VideoCard({ 
@@ -111,18 +112,28 @@ export function VideoCard({
   views, 
   date,
   href,
-  isLive 
+  isLive,
+  thumbnailUrl
 }: VideoCardProps) {
+  // Determine thumbnail source
+  const thumbnail = thumbnailUrl || (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg` : null);
+
   return (
     <a href={href} className="group block">
       <div className="bg-[#252219] border-2 border-[#AEACA1]/20 hover:border-[#FF6B35] transition-all overflow-hidden">
         {/* Thumbnail */}
-        <div className="relative aspect-video overflow-hidden">
-          <img
-            src={`https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`}
-            alt={title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+        <div className="relative aspect-video overflow-hidden bg-[#1a1a1a]">
+          {thumbnail ? (
+            <img
+              src={thumbnail}
+              alt={title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Play className="w-12 h-12 text-[#AEACA1]/30" />
+            </div>
+          )}
           
           {/* CRT Effect */}
           <div className="absolute inset-0 crt-scanline opacity-20 pointer-events-none"></div>

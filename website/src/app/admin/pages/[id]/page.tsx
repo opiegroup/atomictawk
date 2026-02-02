@@ -31,7 +31,6 @@ export default function PageEditorPage() {
     const supabase = getSupabaseClient()
     if (!supabase) return
 
-    // Fetch page
     const { data: pageData } = await supabase
       .from('pages')
       .select('*')
@@ -41,7 +40,6 @@ export default function PageEditorPage() {
     if (pageData) {
       setPage(pageData)
 
-      // Fetch latest version
       const { data: versionData } = await supabase
         .from('page_versions')
         .select('*')
@@ -65,7 +63,6 @@ export default function PageEditorPage() {
     if (!supabase) return
 
     if (isNew) {
-      // Create new page
       const slug = prompt('Enter page slug (e.g., about-us):')
       if (!slug) return
 
@@ -85,7 +82,6 @@ export default function PageEditorPage() {
         return
       }
 
-      // Create first version
       await (supabase.from('page_versions') as any).insert({
         page_id: (newPage as any).id,
         version_number: 1,
@@ -94,7 +90,6 @@ export default function PageEditorPage() {
 
       router.push(`/admin/pages/${(newPage as any).id}`)
     } else {
-      // Get current version number
       const { data: versions } = await supabase
         .from('page_versions')
         .select('version_number')
@@ -104,14 +99,12 @@ export default function PageEditorPage() {
 
       const nextVersion = ((versions as any)?.[0]?.version_number || 0) + 1
 
-      // Save new version
       await (supabase.from('page_versions') as any).insert({
         page_id: pageId,
         version_number: nextVersion,
         layout: newLayout,
       })
 
-      // Update page title if changed
       if (newLayout.globals.seo.title && page?.title !== newLayout.globals.seo.title) {
         await (supabase.from('pages') as any)
           .update({ title: newLayout.globals.seo.title })
@@ -126,10 +119,8 @@ export default function PageEditorPage() {
     const supabase = getSupabaseClient()
     if (!supabase) return
 
-    // Save first
     await handleSave(newLayout)
 
-    // Then publish
     if (!isNew && pageId) {
       await (supabase.rpc as any)('publish_page', { p_page_id: pageId })
       alert('Page published!')

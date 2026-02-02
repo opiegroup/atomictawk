@@ -1,62 +1,70 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { createClient } from "@/lib/supabase/server";
 
 // Initialize Stripe - in production, ensure STRIPE_SECRET_KEY is set in .env
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder", {
   apiVersion: "2026-01-28.clover",
 });
 
-// Mock product data - in production this comes from database
-const products: Record<string, {
-  name: string;
-  price: number;
-  image: string;
-}> = {
-  "1": {
-    name: "Atomic Tawk Logo Tee",
-    price: 3200,
-    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&q=80",
-  },
-  "2": {
-    name: "Mechanical Program Cap",
-    price: 2800,
-    image: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&q=80",
-  },
-  "3": {
-    name: "The Shed Poster",
-    price: 2000,
-    image: "https://images.unsplash.com/photo-1561839561-b13bcfe95249?w=800&q=80",
-  },
-};
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { productId, size, quantity = 1 } = body;
 
-    // Validate product exists
-    const product = products[productId];
-    if (!product) {
+    // Fetch product from database
+    const supabase = await createClient();
+    
+    const { data: product, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .eq('status', 'published')
+      .single();
+
+    if (error || !product) {
       return NextResponse.json(
         { error: "Product not found" },
         { status: 404 }
       );
     }
 
+    if (!product.in_stock || product.stock_qty < quantity) {
+      return NextResponse.json(
+        { error: "Product is out of stock" },
+        { status: 400 }
+      );
+    }
+
+    // Parse images if it's a string
+    let images = product.images;
+    if (typeof images === 'string') {
+      try {
+        images = JSON.parse(images);
+      } catch {
+        images = [];
+      }
+    }
+
+    const productImage = images && images.length > 0 ? images[0] : null;
+
     // Get the base URL for redirects
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
+    // Build product name with variant
+    const productName = product.name + (size ? ` (Size: ${size})` : "");
+
     // Create Stripe Checkout Session
-    const session = await stripe.checkout.sessions.create({
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ["card"],
       line_items: [
         {
           price_data: {
             currency: "aud",
             product_data: {
-              name: product.name + (size ? ` (Size: ${size})` : ""),
-              images: [product.image],
-              description: "Official Atomic Tawk merchandise - Approved for mechanical discussion",
+              name: productName,
+              images: productImage ? [productImage] : [],
+              description: product.description || "Official Atomic Tawk merchandise - Approved for mechanical discussion",
             },
             unit_amount: product.price,
           },
@@ -65,7 +73,7 @@ export async function POST(request: NextRequest) {
       ],
       mode: "payment",
       success_url: `${baseUrl}/store/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/store`,
+      cancel_url: `${baseUrl}/store/${product.slug}`,
       shipping_address_collection: {
         allowed_countries: ["AU", "US", "GB", "NZ", "CA"],
       },
@@ -112,10 +120,14 @@ export async function POST(request: NextRequest) {
         },
       ],
       metadata: {
-        productId,
+        productId: product.id,
+        productSlug: product.slug,
         size: size || "N/A",
+        quantity: quantity.toString(),
       },
-    });
+    };
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     return NextResponse.json({ url: session.url });
   } catch (error) {

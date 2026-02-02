@@ -31,6 +31,29 @@ interface Page {
   status: string
 }
 
+// Pre-defined app routes that can be linked to
+const APP_ROUTES = [
+  { label: 'Home', href: '/' },
+  { label: 'Atomic TV', href: '/tv' },
+  { label: 'Shows', href: '/shows' },
+  { label: 'Blog', href: '/blog' },
+  { label: 'Store', href: '/store' },
+  { label: 'Community', href: '/community' },
+  { label: 'Community - Gallery', href: '/community/gallery' },
+  { label: 'Game', href: '/game' },
+  { label: 'About', href: '/about' },
+  { label: 'Contact', href: '/contact' },
+  { label: 'Login', href: '/login' },
+  { label: 'Sign Up', href: '/signup' },
+  { label: 'Profile', href: '/profile' },
+  // Show categories
+  { label: 'Shows - Burnouts', href: '/shows/burnouts' },
+  { label: 'Shows - Shed', href: '/shows/shed' },
+  { label: 'Shows - Gaming', href: '/shows/gaming' },
+  { label: 'Shows - Science', href: '/shows/science' },
+  { label: 'Shows - Broadcasts', href: '/shows/broadcasts' },
+]
+
 export default function MenuManagementPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
@@ -42,6 +65,7 @@ export default function MenuManagementPage() {
   const [activeLocation, setActiveLocation] = useState<'header' | 'footer'>('header')
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
+  const [linkType, setLinkType] = useState<'route' | 'custom' | 'page'>('route')
 
   // Load menu items and pages
   useEffect(() => {
@@ -268,11 +292,12 @@ export default function MenuManagementPage() {
           <button
             onClick={() => {
               setIsAddingNew(true)
+              setLinkType('route')
               setEditingItem({
                 id: '',
                 menu_location: activeLocation,
                 label: '',
-                href: '/',
+                href: APP_ROUTES[0].href,
                 icon: null,
                 sort_order: 0,
                 parent_id: null,
@@ -352,11 +377,12 @@ export default function MenuManagementPage() {
                   <button
                     onClick={() => {
                       setIsAddingNew(true)
+                      setLinkType('route')
                       setEditingItem({
                         id: '',
                         menu_location: activeLocation,
                         label: '',
-                        href: '/',
+                        href: APP_ROUTES[0].href,
                         icon: null,
                         sort_order: 0,
                         parent_id: item.id, // Set parent to this item
@@ -374,7 +400,17 @@ export default function MenuManagementPage() {
                     Sub
                   </button>
                   <button
-                    onClick={() => setEditingItem(item)}
+                    onClick={() => {
+                      // Determine link type from current values
+                      if (item.page_id) {
+                        setLinkType('page')
+                      } else if (APP_ROUTES.some(r => r.href === item.href)) {
+                        setLinkType('route')
+                      } else {
+                        setLinkType('custom')
+                      }
+                      setEditingItem(item)
+                    }}
                     className="px-3 py-1 text-xs font-bold uppercase text-[#CCAA4C] hover:text-white"
                   >
                     Edit
@@ -422,7 +458,17 @@ export default function MenuManagementPage() {
                       {/* Actions */}
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => setEditingItem(child)}
+                          onClick={() => {
+                            // Determine link type from current values
+                            if (child.page_id) {
+                              setLinkType('page')
+                            } else if (APP_ROUTES.some(r => r.href === child.href)) {
+                              setLinkType('route')
+                            } else {
+                              setLinkType('custom')
+                            }
+                            setEditingItem(child)
+                          }}
                           className="px-3 py-1 text-xs font-bold uppercase text-[#CCAA4C] hover:text-white"
                         >
                           Edit
@@ -486,30 +532,58 @@ export default function MenuManagementPage() {
                   Link To
                 </label>
                 <select
-                  value={editingItem.page_id ? 'page' : 'custom'}
+                  value={linkType}
                   onChange={(e) => {
-                    if (e.target.value === 'page') {
+                    const type = e.target.value as 'route' | 'custom' | 'page'
+                    setLinkType(type)
+                    if (type === 'page') {
                       setEditingItem({ ...editingItem, href: '', page_id: pages[0]?.id || null })
+                    } else if (type === 'route') {
+                      setEditingItem({ ...editingItem, page_id: null, href: APP_ROUTES[0].href })
                     } else {
-                      setEditingItem({ ...editingItem, page_id: null, href: '/' })
+                      setEditingItem({ ...editingItem, page_id: null, href: editingItem.href || '/' })
                     }
                   }}
                   className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#353535] rounded text-white focus:border-[#CCAA4C] focus:outline-none"
                 >
+                  <option value="route">App Route (existing pages)</option>
                   <option value="custom">Custom URL</option>
-                  <option value="page">Page (from Page Builder)</option>
+                  <option value="page">Page Builder Page</option>
                 </select>
               </div>
 
-              {/* Page Selector or URL */}
-              {editingItem.page_id !== null ? (
+              {/* Route Selector */}
+              {linkType === 'route' && (
                 <div>
                   <label className="block text-xs font-bold uppercase text-[#888] mb-1">
-                    Select Page
+                    Select App Route
+                  </label>
+                  <select
+                    value={editingItem.href}
+                    onChange={(e) => setEditingItem({ ...editingItem, href: e.target.value, page_id: null })}
+                    className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#353535] rounded text-white focus:border-[#CCAA4C] focus:outline-none"
+                  >
+                    {APP_ROUTES.map(route => (
+                      <option key={route.href} value={route.href}>
+                        {route.label} ({route.href})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-[#39FF14] mt-1">
+                    These are built-in pages that already exist in the app
+                  </p>
+                </div>
+              )}
+
+              {/* Page Selector */}
+              {linkType === 'page' && (
+                <div>
+                  <label className="block text-xs font-bold uppercase text-[#888] mb-1">
+                    Select Page Builder Page
                   </label>
                   <select
                     value={editingItem.page_id || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, page_id: e.target.value || null })}
+                    onChange={(e) => setEditingItem({ ...editingItem, page_id: e.target.value || null, href: '' })}
                     className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#353535] rounded text-white focus:border-[#CCAA4C] focus:outline-none"
                   >
                     <option value="">-- Select a page --</option>
@@ -525,18 +599,24 @@ export default function MenuManagementPage() {
                     </p>
                   )}
                 </div>
-              ) : (
+              )}
+
+              {/* Custom URL */}
+              {linkType === 'custom' && (
                 <div>
                   <label className="block text-xs font-bold uppercase text-[#888] mb-1">
-                    URL
+                    Custom URL
                   </label>
                   <input
                     type="text"
                     value={editingItem.href}
-                    onChange={(e) => setEditingItem({ ...editingItem, href: e.target.value })}
+                    onChange={(e) => setEditingItem({ ...editingItem, href: e.target.value, page_id: null })}
                     className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#353535] rounded text-white focus:border-[#CCAA4C] focus:outline-none"
-                    placeholder="/about or https://..."
+                    placeholder="/custom-path or https://..."
                   />
+                  <p className="text-[10px] text-[#666] mt-1">
+                    Enter any URL - internal (/path) or external (https://...)
+                  </p>
                 </div>
               )}
 
@@ -633,14 +713,18 @@ export default function MenuManagementPage() {
 
       {/* Instructions */}
       <div className="bg-[#1a1a1a] border border-[#353535] rounded p-4">
-        <h3 className="font-bold text-[#CCAA4C] uppercase text-sm mb-2">How to add a page to the menu:</h3>
-        <ol className="text-sm text-[#888] space-y-1 list-decimal list-inside">
-          <li>Create and <strong>publish</strong> your page in the Page Builder</li>
-          <li>Click "Add Menu Item" above</li>
-          <li>Set "Link To" to "Page (from Page Builder)"</li>
-          <li>Select your page from the dropdown</li>
-          <li>The URL will automatically use the page&apos;s slug</li>
-        </ol>
+        <h3 className="font-bold text-[#CCAA4C] uppercase text-sm mb-2">Link Types:</h3>
+        <div className="text-sm text-[#888] space-y-3">
+          <div>
+            <strong className="text-[#39FF14]">App Route</strong> - Built-in pages like TV, Community, Gallery, Store, etc.
+          </div>
+          <div>
+            <strong className="text-white">Custom URL</strong> - Any URL you type in (internal paths or external links)
+          </div>
+          <div>
+            <strong className="text-[#FF6B35]">Page Builder Page</strong> - Pages you&apos;ve created in the Page Builder
+          </div>
+        </div>
       </div>
     </div>
   )

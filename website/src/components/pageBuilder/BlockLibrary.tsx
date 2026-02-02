@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { useDraggable } from '@dnd-kit/core'
 import { BLOCK_LIBRARY, BlockCategory, BlockType, BlockDefinition } from '@/lib/pageBuilder'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, GripVertical } from 'lucide-react'
 
 interface BlockLibraryProps {
   onAddBlock: (type: BlockType) => void
+  onDragStart?: (type: BlockType) => void
+  onDragEnd?: () => void
 }
 
 const CATEGORIES: { id: BlockCategory; label: string; icon: string }[] = [
@@ -19,33 +20,54 @@ const CATEGORIES: { id: BlockCategory; label: string; icon: string }[] = [
   { id: 'layout', label: 'Layout', icon: '📐' },
 ]
 
-function DraggableBlock({ block, onAdd }: { block: BlockDefinition; onAdd: () => void }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `library_${block.type}`,
-  })
+function LibraryBlock({ 
+  block, 
+  onAdd,
+  onDragStart,
+  onDragEnd,
+}: { 
+  block: BlockDefinition
+  onAdd: () => void
+  onDragStart?: (type: BlockType) => void
+  onDragEnd?: () => void
+}) {
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleDragStart = (e: React.DragEvent) => {
+    setIsDragging(true)
+    e.dataTransfer.effectAllowed = 'copy'
+    e.dataTransfer.setData('text/plain', `library_${block.type}`)
+    onDragStart?.(block.type)
+  }
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    setIsDragging(false)
+    onDragEnd?.()
+  }
 
   return (
-    <button
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onClick={onAdd}
-      className={`w-full flex items-center gap-3 px-3 py-2 rounded text-left transition-colors ${
+      className={`w-full flex items-center gap-3 px-3 py-2 rounded text-left transition-colors cursor-grab active:cursor-grabbing ${
         isDragging 
           ? 'opacity-50 bg-[#CCAA4C]/20' 
           : 'hover:bg-[#353535]'
       }`}
     >
-      <span className="text-lg">{block.icon}</span>
+      <GripVertical className="w-4 h-4 text-[#666] shrink-0" />
+      <span className="text-lg shrink-0">{block.icon}</span>
       <div className="flex-1 min-w-0">
         <p className="text-white text-sm font-medium truncate">{block.name}</p>
         <p className="text-[#666] text-xs truncate">{block.description}</p>
       </div>
-    </button>
+    </div>
   )
 }
 
-export function BlockLibrary({ onAddBlock }: BlockLibraryProps) {
+export function BlockLibrary({ onAddBlock, onDragStart, onDragEnd }: BlockLibraryProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<BlockCategory>>(
     new Set(['hero', 'content', 'media'])
   )
@@ -92,10 +114,12 @@ export function BlockLibrary({ onAddBlock }: BlockLibraryProps) {
             {isExpanded && (
               <div className="px-2 pb-2">
                 {blocks.map(block => (
-                  <DraggableBlock
+                  <LibraryBlock
                     key={block.type}
                     block={block}
                     onAdd={() => onAddBlock(block.type)}
+                    onDragStart={onDragStart}
+                    onDragEnd={onDragEnd}
                   />
                 ))}
               </div>

@@ -1,91 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { DraggableList } from "@/components/admin/DraggableList";
 import { FormField, Input, Textarea, Select, ImageUpload } from "@/components/admin/FormField";
-import { X, Save, ShoppingBag, Plus, Trash2 } from "lucide-react";
+import { X, Save, ShoppingBag, Plus, Trash2, Loader2 } from "lucide-react";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 interface ProductVariant {
   id: string;
   name: string;
   type: "size" | "color";
-  stock: number;
+  stock_qty: number;
+  price_adjustment: number;
+  isNew?: boolean;
+}
+
+interface Spec {
+  label: string;
+  value: string;
 }
 
 interface Product {
   id: string;
-  title: string;
-  subtitle?: string;
-  image?: string;
-  status: "published" | "draft" | "archived";
   name: string;
+  slug: string;
   description: string;
+  specs: Spec[];
   price: number;
+  compare_price: number | null;
+  images: string[];
   category: string;
-  serialNo: string;
-  specs: string;
-  inStock: boolean;
-  variants: ProductVariant[];
+  serial_no: string;
+  in_stock: boolean;
+  stock_qty: number;
   configurable: boolean;
+  status: "draft" | "published" | "archived";
+  sort_order: number;
+  variants: ProductVariant[];
 }
-
-// Mock data - in production this comes from database
-const initialProducts: Product[] = [
-  {
-    id: "1",
-    title: "Logo Tee",
-    subtitle: "AT-TEE-01 • $32.00",
-    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&q=80",
-    status: "published",
-    name: "Logo Tee",
-    description: "The official Atomic Tawk logo tee. Made from heavy-duty cotton.",
-    price: 3200,
-    category: "apparel",
-    serialNo: "AT-TEE-01",
-    specs: "100% Heavy Cotton, 240 GSM",
-    inStock: true,
-    variants: [
-      { id: "v1", name: "S", type: "size", stock: 50 },
-      { id: "v2", name: "M", type: "size", stock: 100 },
-      { id: "v3", name: "L", type: "size", stock: 75 },
-      { id: "v4", name: "XL", type: "size", stock: 40 },
-    ],
-    configurable: false,
-  },
-  {
-    id: "10",
-    title: "Industrial Workbench - Standard",
-    subtitle: "AT-WRK-01 • $1,899.00",
-    image: "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=800&q=80",
-    status: "published",
-    name: "Industrial Workbench - Standard",
-    description: "Heavy-duty industrial workbench for serious workshop use.",
-    price: 189900,
-    category: "workbench",
-    serialNo: "AT-WRK-01",
-    specs: "Steel frame, Hardwood top, 1500mm x 750mm",
-    inStock: true,
-    variants: [],
-    configurable: true,
-  },
-  {
-    id: "20",
-    title: "Industrial Tool Cabinet",
-    subtitle: "AT-CAB-01 • $2,499.00",
-    image: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=800&q=80",
-    status: "published",
-    name: "Industrial Tool Cabinet",
-    description: "Secure tool storage with multiple drawers and compartments.",
-    price: 249900,
-    category: "cabinet",
-    serialNo: "AT-CAB-01",
-    specs: "Steel construction, Dual lock system, 12 drawers",
-    inStock: true,
-    variants: [],
-    configurable: true,
-  },
-];
 
 const categories = [
   { value: "apparel", label: "Apparel" },
@@ -107,85 +60,293 @@ function formatPrice(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [editingItem, setEditingItem] = useState<Product | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load products on mount
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const supabase = getSupabaseClient();
+      
+      // Fetch products with their variants
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+        .order('sort_order', { ascending: true });
+
+      if (productsError) throw productsError;
+
+      // Fetch variants for all products
+      const { data: variantsData, error: variantsError } = await supabase
+        .from('product_variants')
+        .select('*');
+
+      if (variantsError) throw variantsError;
+
+      // Combine products with their variants
+      const productsWithVariants = (productsData || []).map(product => {
+        let specs = product.specs;
+        let images = product.images;
+
+        // Parse JSON fields if they're strings
+        if (typeof specs === 'string') {
+          try { specs = JSON.parse(specs); } catch { specs = []; }
+        }
+        if (typeof images === 'string') {
+          try { images = JSON.parse(images); } catch { images = []; }
+        }
+
+        const productVariants = (variantsData || [])
+          .filter(v => v.product_id === product.id)
+          .map(v => ({
+            id: v.id,
+            name: v.name,
+            type: v.type as "size" | "color",
+            stock_qty: v.stock_qty,
+            price_adjustment: v.price_adjustment || 0,
+          }));
+
+        return {
+          ...product,
+          specs: specs || [],
+          images: images || [],
+          variants: productVariants,
+        } as Product;
+      });
+
+      setProducts(productsWithVariants);
+    } catch (err) {
+      console.error('Error loading products:', err);
+      setError('Failed to load products');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredProducts = products.filter((item) =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleReorder = (newItems: Product[]) => {
-    setProducts(newItems);
+  const handleReorder = async (newItems: Product[]) => {
+    // Update local state immediately
+    const reorderedProducts = newItems.map((item, index) => ({
+      ...item,
+      sort_order: index,
+    }));
+    setProducts(reorderedProducts);
+
+    // Update database
+    try {
+      const supabase = getSupabaseClient();
+      
+      for (let i = 0; i < reorderedProducts.length; i++) {
+        await supabase
+          .from('products')
+          .update({ sort_order: i })
+          .eq('id', reorderedProducts[i].id);
+      }
+    } catch (err) {
+      console.error('Error reordering products:', err);
+      // Reload to get correct order
+      loadProducts();
+    }
   };
 
   const handleEdit = (id: string) => {
     const item = products.find((p) => p.id === id);
     if (item) {
-      setEditingItem({ ...item, variants: [...item.variants] });
+      setEditingItem({ 
+        ...item, 
+        variants: item.variants.map(v => ({ ...v })),
+        specs: item.specs.map(s => ({ ...s })),
+        images: [...item.images],
+      });
       setIsCreating(false);
     }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this product?")) {
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+
+    try {
+      const supabase = getSupabaseClient();
+      
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
       setProducts(products.filter((p) => p.id !== id));
+    } catch (err) {
+      console.error('Error deleting product:', err);
+      alert('Failed to delete product');
     }
   };
 
-  const handleToggleStatus = (id: string) => {
-    setProducts(
-      products.map((p) =>
-        p.id === id
-          ? { ...p, status: p.status === "published" ? "draft" : "published" }
-          : p
-      )
-    );
+  const handleToggleStatus = async (id: string) => {
+    const product = products.find(p => p.id === id);
+    if (!product) return;
+
+    const newStatus = product.status === "published" ? "draft" : "published";
+
+    try {
+      const supabase = getSupabaseClient();
+      
+      const { error } = await supabase
+        .from('products')
+        .update({ status: newStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setProducts(
+        products.map((p) =>
+          p.id === id ? { ...p, status: newStatus } : p
+        )
+      );
+    } catch (err) {
+      console.error('Error toggling status:', err);
+      alert('Failed to update status');
+    }
   };
 
   const handleAddNew = () => {
+    const serialNum = `AT-NEW-${Math.floor(Math.random() * 99) + 1}`;
     setEditingItem({
-      id: `new-${Date.now()}`,
-      title: "",
-      subtitle: "",
-      image: "",
-      status: "draft",
+      id: "",
       name: "",
+      slug: "",
       description: "",
+      specs: [],
       price: 0,
+      compare_price: null,
+      images: [],
       category: "apparel",
-      serialNo: `AT-NEW-${Math.floor(Math.random() * 99) + 1}`,
-      specs: "",
-      inStock: true,
-      variants: [],
+      serial_no: serialNum,
+      in_stock: true,
+      stock_qty: 100,
       configurable: false,
+      status: "draft",
+      sort_order: 0,
+      variants: [],
     });
     setIsCreating(true);
   };
 
-  const handleSave = () => {
-    if (!editingItem) return;
+  const handleSave = async () => {
+    if (!editingItem || !editingItem.name) return;
 
-    const updatedItem = {
-      ...editingItem,
-      title: editingItem.name,
-      subtitle: `${editingItem.serialNo} • ${formatPrice(editingItem.price)}`,
-    };
+    setSaving(true);
+    setError(null);
 
-    if (isCreating) {
-      setProducts([updatedItem, ...products]);
-    } else {
-      setProducts(products.map((p) => (p.id === updatedItem.id ? updatedItem : p)));
+    try {
+      const supabase = getSupabaseClient();
+      
+      // Generate slug if not set
+      const slug = editingItem.slug || generateSlug(editingItem.name);
+      
+      const productData = {
+        name: editingItem.name,
+        slug,
+        description: editingItem.description,
+        specs: editingItem.specs,
+        price: editingItem.price,
+        compare_price: editingItem.compare_price,
+        images: editingItem.images,
+        category: editingItem.category,
+        serial_no: editingItem.serial_no,
+        in_stock: editingItem.in_stock,
+        stock_qty: editingItem.stock_qty,
+        configurable: editingItem.configurable,
+        status: editingItem.status,
+        sort_order: editingItem.sort_order,
+      };
+
+      let productId = editingItem.id;
+
+      if (isCreating) {
+        // Create new product
+        const { data, error } = await supabase
+          .from('products')
+          .insert(productData)
+          .select()
+          .single();
+
+        if (error) throw error;
+        productId = data.id;
+      } else {
+        // Update existing product
+        const { error } = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', productId);
+
+        if (error) throw error;
+
+        // Delete existing variants to replace with new ones
+        await supabase
+          .from('product_variants')
+          .delete()
+          .eq('product_id', productId);
+      }
+
+      // Insert variants
+      if (editingItem.variants.length > 0) {
+        const variantsToInsert = editingItem.variants.map(v => ({
+          product_id: productId,
+          name: v.name,
+          type: v.type,
+          stock_qty: v.stock_qty,
+          price_adjustment: v.price_adjustment,
+        }));
+
+        const { error: variantError } = await supabase
+          .from('product_variants')
+          .insert(variantsToInsert);
+
+        if (variantError) throw variantError;
+      }
+
+      // Reload products
+      await loadProducts();
+      
+      setEditingItem(null);
+      setIsCreating(false);
+    } catch (err: unknown) {
+      console.error('Error saving product:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save product';
+      setError(errorMessage);
+    } finally {
+      setSaving(false);
     }
-    setEditingItem(null);
-    setIsCreating(false);
   };
 
   const handleCancel = () => {
     setEditingItem(null);
     setIsCreating(false);
+    setError(null);
   };
 
   const addVariant = () => {
@@ -194,7 +355,7 @@ export default function ProductsPage() {
       ...editingItem,
       variants: [
         ...editingItem.variants,
-        { id: `v-${Date.now()}`, name: "", type: "size", stock: 100 },
+        { id: `new-${Date.now()}`, name: "", type: "size", stock_qty: 100, price_adjustment: 0, isNew: true },
       ],
     });
   };
@@ -211,6 +372,35 @@ export default function ProductsPage() {
     const newVariants = editingItem.variants.filter((_, i) => i !== index);
     setEditingItem({ ...editingItem, variants: newVariants });
   };
+
+  const addSpec = () => {
+    if (!editingItem) return;
+    setEditingItem({
+      ...editingItem,
+      specs: [...editingItem.specs, { label: "", value: "" }],
+    });
+  };
+
+  const updateSpec = (index: number, field: 'label' | 'value', value: string) => {
+    if (!editingItem) return;
+    const newSpecs = [...editingItem.specs];
+    newSpecs[index] = { ...newSpecs[index], [field]: value };
+    setEditingItem({ ...editingItem, specs: newSpecs });
+  };
+
+  const removeSpec = (index: number) => {
+    if (!editingItem) return;
+    const newSpecs = editingItem.specs.filter((_, i) => i !== index);
+    setEditingItem({ ...editingItem, specs: newSpecs });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#CCAA4C]" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -241,22 +431,51 @@ export default function ProductsPage() {
                 </button>
               </div>
 
+              {/* Error display */}
+              {error && (
+                <div className="mx-6 mt-4 p-4 bg-red-900/50 border border-red-500 text-red-200">
+                  {error}
+                </div>
+              )}
+
               {/* Editor Form */}
               <div className="p-6 space-y-6 max-h-[70vh] overflow-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField label="Product Name" required>
                     <Input
                       value={editingItem.name}
-                      onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                      onChange={(e) => setEditingItem({ 
+                        ...editingItem, 
+                        name: e.target.value,
+                        slug: generateSlug(e.target.value),
+                      })}
                       placeholder="Enter product name..."
                     />
                   </FormField>
 
+                  <FormField label="Slug">
+                    <Input
+                      value={editingItem.slug}
+                      onChange={(e) => setEditingItem({ ...editingItem, slug: e.target.value })}
+                      placeholder="product-slug"
+                    />
+                  </FormField>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField label="Serial Number">
                     <Input
-                      value={editingItem.serialNo}
-                      onChange={(e) => setEditingItem({ ...editingItem, serialNo: e.target.value })}
+                      value={editingItem.serial_no}
+                      onChange={(e) => setEditingItem({ ...editingItem, serial_no: e.target.value })}
                       placeholder="AT-XXX-XX"
+                    />
+                  </FormField>
+
+                  <FormField label="Category">
+                    <Select
+                      value={editingItem.category}
+                      onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
+                      options={categories}
                     />
                   </FormField>
                 </div>
@@ -274,11 +493,12 @@ export default function ProductsPage() {
                     </p>
                   </FormField>
 
-                  <FormField label="Category">
-                    <Select
-                      value={editingItem.category}
-                      onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
-                      options={categories}
+                  <FormField label="Stock Quantity">
+                    <Input
+                      type="number"
+                      value={editingItem.stock_qty}
+                      onChange={(e) => setEditingItem({ ...editingItem, stock_qty: parseInt(e.target.value) || 0 })}
+                      placeholder="100"
                     />
                   </FormField>
 
@@ -300,20 +520,21 @@ export default function ProductsPage() {
                   />
                 </FormField>
 
-                <FormField label="Specifications">
-                  <Textarea
-                    value={editingItem.specs}
-                    onChange={(e) => setEditingItem({ ...editingItem, specs: e.target.value })}
-                    placeholder="100% Cotton, 240 GSM, etc."
-                    rows={2}
+                <FormField label="Product Image URL">
+                  <Input
+                    value={editingItem.images[0] || ""}
+                    onChange={(e) => setEditingItem({ ...editingItem, images: e.target.value ? [e.target.value] : [] })}
+                    placeholder="https://..."
                   />
-                </FormField>
-
-                <FormField label="Product Image">
-                  <ImageUpload
-                    value={editingItem.image || ""}
-                    onChange={(url) => setEditingItem({ ...editingItem, image: url })}
-                  />
+                  {editingItem.images[0] && (
+                    <div className="mt-2">
+                      <img 
+                        src={editingItem.images[0]} 
+                        alt="Preview" 
+                        className="w-32 h-32 object-cover border border-[#AEACA1]/30"
+                      />
+                    </div>
+                  )}
                 </FormField>
 
                 <div className="grid grid-cols-2 gap-6">
@@ -321,8 +542,8 @@ export default function ProductsPage() {
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={editingItem.inStock}
-                        onChange={(e) => setEditingItem({ ...editingItem, inStock: e.target.checked })}
+                        checked={editingItem.in_stock}
+                        onChange={(e) => setEditingItem({ ...editingItem, in_stock: e.target.checked })}
                         className="w-5 h-5 bg-[#1f1c13] border-2 border-[#AEACA1]/30 text-[#CCAA4C] focus:ring-[#CCAA4C]"
                       />
                       <span className="text-white">Product is in stock</span>
@@ -340,6 +561,51 @@ export default function ProductsPage() {
                       <span className="text-white">Enable 3D configurator</span>
                     </label>
                   </FormField>
+                </div>
+
+                {/* Specifications */}
+                <div className="border-t-2 border-[#AEACA1]/20 pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-white">Technical Specifications</h3>
+                    <button
+                      onClick={addSpec}
+                      className="flex items-center gap-2 text-[#CCAA4C] hover:text-white text-sm font-bold"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Spec
+                    </button>
+                  </div>
+
+                  {editingItem.specs.length > 0 ? (
+                    <div className="space-y-3">
+                      {editingItem.specs.map((spec, index) => (
+                        <div key={index} className="flex items-center gap-4 bg-[#1f1c13] p-4 border border-[#AEACA1]/20">
+                          <Input
+                            value={spec.label}
+                            onChange={(e) => updateSpec(index, "label", e.target.value)}
+                            placeholder="Label (e.g., Material)"
+                            className="flex-1"
+                          />
+                          <Input
+                            value={spec.value}
+                            onChange={(e) => updateSpec(index, "value", e.target.value)}
+                            placeholder="Value (e.g., 100% Cotton)"
+                            className="flex-1"
+                          />
+                          <button
+                            onClick={() => removeSpec(index)}
+                            className="p-2 text-[#AEACA1] hover:text-red-400"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[#AEACA1] italic">
+                      No specifications added. Add specs like &quot;Material&quot;, &quot;Dimensions&quot;, etc.
+                    </p>
+                  )}
                 </div>
 
                 {/* Variants */}
@@ -376,8 +642,8 @@ export default function ProductsPage() {
                           />
                           <Input
                             type="number"
-                            value={variant.stock}
-                            onChange={(e) => updateVariant(index, "stock", parseInt(e.target.value) || 0)}
+                            value={variant.stock_qty}
+                            onChange={(e) => updateVariant(index, "stock_qty", parseInt(e.target.value) || 0)}
                             placeholder="Stock"
                             className="w-24"
                           />
@@ -409,9 +675,14 @@ export default function ProductsPage() {
                 </button>
                 <button
                   onClick={handleSave}
-                  className="flex items-center gap-2 px-6 py-3 bg-[#CCAA4C] text-[#353535] font-bold uppercase tracking-widest text-sm hover:bg-[#E3E2D5] transition-colors"
+                  disabled={saving || !editingItem.name}
+                  className="flex items-center gap-2 px-6 py-3 bg-[#CCAA4C] text-[#353535] font-bold uppercase tracking-widest text-sm hover:bg-[#E3E2D5] transition-colors disabled:opacity-50"
                 >
-                  <Save className="w-4 h-4" />
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
                   Save
                 </button>
               </div>
@@ -431,8 +702,8 @@ export default function ProductsPage() {
             items={filteredProducts.map((item) => ({
               id: item.id,
               title: item.name,
-              subtitle: `${item.serialNo} • ${formatPrice(item.price)} • ${item.category}`,
-              image: item.image,
+              subtitle: `${item.serial_no || 'No Serial'} • ${formatPrice(item.price)} • ${item.category}`,
+              image: item.images && item.images[0],
               status: item.status,
             }))}
             onReorder={(newItems) => {

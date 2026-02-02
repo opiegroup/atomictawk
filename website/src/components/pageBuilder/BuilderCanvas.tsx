@@ -1,10 +1,10 @@
 'use client'
 
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
+import { useState, useRef } from 'react'
 import { PageBlock, PageGlobals, getBlockDefinition } from '@/lib/pageBuilder'
 import { BlockRenderer } from './BlockRenderer'
-import { GripVertical, Trash2, Copy, Eye, EyeOff } from 'lucide-react'
+import { GripVertical, Trash2, Copy } from 'lucide-react'
+import type { DragState } from './PageBuilder'
 
 interface BuilderCanvasProps {
   blocks: PageBlock[]
@@ -13,39 +13,95 @@ interface BuilderCanvasProps {
   onSelectBlock: (id: string | null) => void
   onDeleteBlock: (id: string) => void
   onDuplicateBlock: (id: string) => void
+  onDrop: (index: number) => void
+  onBlockDragStart: (blockId: string) => void
+  onBlockDragEnd: () => void
+  dragState: DragState
 }
 
-interface SortableBlockProps {
+interface DraggableBlockProps {
   block: PageBlock
+  index: number
   isSelected: boolean
   onSelect: () => void
   onDelete: () => void
   onDuplicate: () => void
+  onDragStart: () => void
+  onDragEnd: () => void
+  onDrop: (index: number) => void
+  isDragging: boolean
+  dragState: DragState
 }
 
-function SortableBlock({ block, isSelected, onSelect, onDelete, onDuplicate }: SortableBlockProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: block.id })
+function DraggableBlock({ 
+  block, 
+  index, 
+  isSelected, 
+  onSelect, 
+  onDelete, 
+  onDuplicate,
+  onDragStart,
+  onDragEnd,
+  onDrop,
+  isDragging,
+  dragState,
+}: DraggableBlockProps) {
+  const [dropPosition, setDropPosition] = useState<'above' | 'below' | null>(null)
+  const blockRef = useRef<HTMLDivElement>(null)
+  const definition = getBlockDefinition(block.type)
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', block.id)
+    onDragStart()
   }
 
-  const definition = getBlockDefinition(block.type)
+  const handleDragEnd = (e: React.DragEvent) => {
+    onDragEnd()
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!blockRef.current) return
+    
+    const rect = blockRef.current.getBoundingClientRect()
+    const midpoint = rect.top + rect.height / 2
+    
+    if (e.clientY < midpoint) {
+      setDropPosition('above')
+    } else {
+      setDropPosition('below')
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    setDropPosition(null)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const dropIndex = dropPosition === 'above' ? index : index + 1
+    onDrop(dropIndex)
+    setDropPosition(null)
+  }
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      className={`relative group ${isDragging ? 'z-50' : ''}`}
+      ref={blockRef}
+      className={`relative group ${isDragging ? 'opacity-50' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
+      {/* Drop Indicator Above */}
+      {dropPosition === 'above' && (
+        <div className="absolute top-0 left-0 right-0 h-1 bg-[#CCAA4C] z-30 -translate-y-1/2" />
+      )}
+
       {/* Block Wrapper */}
       <div
         onClick={(e) => {
@@ -66,13 +122,14 @@ function SortableBlock({ block, isSelected, onSelect, onDelete, onDuplicate }: S
         >
           {/* Left - Drag Handle & Type */}
           <div className="flex items-center gap-2">
-            <button
-              {...attributes}
-              {...listeners}
+            <div
+              draggable
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
               className="p-1 text-[#888] hover:text-white cursor-grab active:cursor-grabbing"
             >
               <GripVertical className="w-4 h-4" />
-            </button>
+            </div>
             <span className="text-xs text-[#CCAA4C] font-bold uppercase tracking-wide">
               {definition?.icon} {definition?.name}
             </span>
@@ -111,6 +168,11 @@ function SortableBlock({ block, isSelected, onSelect, onDelete, onDuplicate }: S
           <BlockRenderer block={block} isEditing />
         </div>
       </div>
+
+      {/* Drop Indicator Below */}
+      {dropPosition === 'below' && (
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#CCAA4C] z-30 translate-y-1/2" />
+      )}
     </div>
   )
 }
@@ -122,7 +184,13 @@ export function BuilderCanvas({
   onSelectBlock,
   onDeleteBlock,
   onDuplicateBlock,
+  onDrop,
+  onBlockDragStart,
+  onBlockDragEnd,
+  dragState,
 }: BuilderCanvasProps) {
+  const [isOverCanvas, setIsOverCanvas] = useState(false)
+  
   // Background textures
   const textureStyles: Record<string, string> = {
     plain: '',
@@ -131,17 +199,43 @@ export function BuilderCanvas({
     concrete: 'bg-[#3a3a3a]',
   }
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsOverCanvas(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only set false if we're leaving the canvas entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsOverCanvas(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsOverCanvas(false)
+    // Drop at the end if dropped on empty canvas
+    onDrop(blocks.length)
+  }
+
   if (blocks.length === 0) {
     return (
       <div 
-        className={`min-h-[600px] border-4 border-dashed border-[#353535] rounded-lg flex items-center justify-center ${textureStyles[globals.backgroundTexture]}`}
+        className={`min-h-[600px] border-4 border-dashed rounded-lg flex items-center justify-center transition-colors ${
+          isOverCanvas && dragState.isDragging
+            ? 'border-[#CCAA4C] bg-[#CCAA4C]/10'
+            : 'border-[#353535]'
+        } ${textureStyles[globals.backgroundTexture]}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         <div className="text-center p-8">
           <p className="text-[#666] text-lg font-bold uppercase tracking-wide mb-2">
-            Empty Canvas
+            {dragState.isDragging ? 'Drop Block Here' : 'Empty Canvas'}
           </p>
           <p className="text-[#555] text-sm">
-            Drag blocks from the library or click to add
+            {dragState.isDragging ? 'Release to add block' : 'Drag blocks from the library or click to add'}
           </p>
         </div>
       </div>
@@ -150,20 +244,33 @@ export function BuilderCanvas({
 
   return (
     <div 
-      className={`min-h-[600px] border-2 border-[#353535] rounded-lg overflow-hidden ${textureStyles[globals.backgroundTexture]}`}
+      className={`min-h-[600px] border-2 rounded-lg overflow-hidden transition-colors ${
+        isOverCanvas && dragState.isDragging
+          ? 'border-[#CCAA4C]'
+          : 'border-[#353535]'
+      } ${textureStyles[globals.backgroundTexture]}`}
       onClick={() => onSelectBlock(null)}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       <div className="space-y-0">
         {blocks
           .sort((a, b) => a.order - b.order)
-          .map(block => (
-            <SortableBlock
+          .map((block, index) => (
+            <DraggableBlock
               key={block.id}
               block={block}
+              index={index}
               isSelected={selectedBlockId === block.id}
               onSelect={() => onSelectBlock(block.id)}
               onDelete={() => onDeleteBlock(block.id)}
               onDuplicate={() => onDuplicateBlock(block.id)}
+              onDragStart={() => onBlockDragStart(block.id)}
+              onDragEnd={onBlockDragEnd}
+              onDrop={onDrop}
+              isDragging={dragState.draggedBlockId === block.id}
+              dragState={dragState}
             />
           ))}
       </div>

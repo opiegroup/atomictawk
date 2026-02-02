@@ -8,6 +8,7 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { BlokeScienceSlider } from "@/components/BlokeScienceSlider";
 import { LatestBroadcasts } from "@/components/LatestBroadcasts";
 import { FeaturedContent } from "@/components/FeaturedContent";
+import { FeaturedProducts } from "@/components/FeaturedProducts";
 import { PageRenderer } from "@/components/pageBuilder";
 import { createClient } from "@/lib/supabase/server";
 import { PageLayout } from "@/lib/pageBuilder";
@@ -61,13 +62,12 @@ async function getHomePage(): Promise<PageLayout | null> {
 }
 
 export default async function HomePage() {
-  // Try to load the home page from the database
-  const pageLayout = await getHomePage();
-
-  // If we have a database page, render it with the page builder
-  if (pageLayout) {
-    return <PageRenderer layout={pageLayout} />;
-  }
+  // Temporarily skip database page loading due to auth issues causing hangs
+  // TODO: Re-enable once auth token refresh is fixed
+  // const pageLayout = await getHomePage();
+  // if (pageLayout) {
+  //   return <PageRenderer layout={pageLayout} />;
+  // }
 
   // Otherwise, render the hardcoded fallback
   return (
@@ -349,6 +349,12 @@ export default async function HomePage() {
           
         </div>
       </section>
+
+      {/* Featured Products */}
+      <FeaturedProducts 
+        heading="Garage Essentials"
+        maxItems={4}
+      />
 
       {/* ATOMIC TV BANNER */}
       <section className="bg-[#353535] border-y-4 border-[#FF6B35]">

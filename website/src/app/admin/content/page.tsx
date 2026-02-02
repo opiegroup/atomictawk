@@ -26,12 +26,14 @@ interface ContentItem {
   body: string;
   thumbnail_url: string;
   video_url: string;
+  duration: number | null; // Duration in seconds
   category_id: string | null;
   content_type: "video" | "article" | "broadcast" | "podcast";
   status: "draft" | "published" | "archived" | "scheduled";
   scheduled_for: string | null;
   tags: string[];
   is_featured: boolean;
+  is_live: boolean; // For live streams
   allow_comments: boolean;
   seo_title: string;
   seo_description: string;
@@ -131,12 +133,14 @@ export default function ContentPage() {
         body: editingItem.body,
         thumbnail_url: editingItem.thumbnail_url,
         video_url: editingItem.video_url,
+        duration: editingItem.duration,
         category_id: editingItem.category_id || null,
         content_type: editingItem.content_type,
         status: editingItem.status,
         scheduled_for: editingItem.scheduled_for,
         tags: editingItem.tags || [],
         is_featured: editingItem.is_featured,
+        is_live: editingItem.is_live,
         allow_comments: editingItem.allow_comments,
         seo_title: editingItem.seo_title,
         seo_description: editingItem.seo_description,
@@ -200,12 +204,14 @@ export default function ContentPage() {
       body: '',
       thumbnail_url: '',
       video_url: '',
+      duration: null,
       category_id: null,
       content_type: 'article',
       status: 'draft',
       scheduled_for: null,
       tags: [],
       is_featured: false,
+      is_live: false,
       allow_comments: true,
       seo_title: '',
       seo_description: '',
@@ -510,16 +516,31 @@ export default function ContentPage() {
                 />
 
                 {(editingItem.content_type === 'video' || editingItem.content_type === 'broadcast') && (
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-[#888] mb-1">Video URL</label>
-                    <input
-                      type="text"
-                      value={editingItem.video_url}
-                      onChange={(e) => setEditingItem({ ...editingItem, video_url: e.target.value })}
-                      className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#353535] rounded text-white focus:border-[#CCAA4C] focus:outline-none"
-                      placeholder="YouTube, Vimeo, or direct video URL"
-                    />
-                  </div>
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-[#888] mb-1">Video URL</label>
+                      <input
+                        type="text"
+                        value={editingItem.video_url}
+                        onChange={(e) => setEditingItem({ ...editingItem, video_url: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#353535] rounded text-white focus:border-[#CCAA4C] focus:outline-none"
+                        placeholder="YouTube, Vimeo, or direct video URL"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-[#888] mb-1">Duration (seconds)</label>
+                      <input
+                        type="number"
+                        value={editingItem.duration || ''}
+                        onChange={(e) => setEditingItem({ ...editingItem, duration: e.target.value ? parseInt(e.target.value) : null })}
+                        className="w-full px-3 py-2 bg-[#1a1a1a] border border-[#353535] rounded text-white focus:border-[#CCAA4C] focus:outline-none"
+                        placeholder="e.g., 1830 for 30:30"
+                      />
+                      <p className="text-[10px] text-[#666] mt-1">
+                        Enter total seconds (e.g., 90 = 1:30, 3600 = 1:00:00)
+                      </p>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -562,6 +583,17 @@ export default function ContentPage() {
                   />
                   <span className="text-sm text-white">⭐ Featured</span>
                 </label>
+                {(editingItem.content_type === 'video' || editingItem.content_type === 'broadcast') && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editingItem.is_live}
+                      onChange={(e) => setEditingItem({ ...editingItem, is_live: e.target.checked })}
+                      className="w-4 h-4 accent-red-500"
+                    />
+                    <span className="text-sm text-white">🔴 Live Stream</span>
+                  </label>
+                )}
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
