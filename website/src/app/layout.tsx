@@ -3,6 +3,7 @@ import { Oswald, Space_Grotesk, Courier_Prime } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 
 const oswald = Oswald({
   variable: "--font-oswald",
@@ -44,6 +45,7 @@ export default function RootLayout({
         className={`${oswald.variable} ${spaceGrotesk.variable} ${courierPrime.variable} antialiased min-h-screen flex flex-col`}
         style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
       >
+        <GoogleAnalytics />
         <Header />
         <main className="flex-grow">
           {children}
