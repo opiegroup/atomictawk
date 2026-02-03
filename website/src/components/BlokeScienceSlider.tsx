@@ -2,51 +2,89 @@
 
 import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { BlokeFact, defaultBlokeFacts } from "@/lib/siteSettings";
 
-const blokeScienceFacts = [
+// Default hardcoded facts (used as fallback)
+const hardcodedFacts: BlokeFact[] = [
   {
+    id: '1',
     title: "The First V8 Engine",
-    fact: "The first V8 engine was patented in 1902 by Léon Levavasseur, a French inventor. Originally designed for aircraft, the V8 configuration became the heart of American muscle cars by the 1960s. Talk about a power upgrade."
+    fact: "The first V8 engine was patented in 1902 by Léon Levavasseur, a French inventor. Originally designed for aircraft, the V8 configuration became the heart of American muscle cars by the 1960s. Talk about a power upgrade.",
+    sort_order: 1,
+    is_active: true,
   },
   {
+    id: '2',
     title: "Burnout Physics",
-    fact: "A proper burnout can heat tyre rubber to over 200°C (392°F). The smoke you see is actually vaporized rubber particles mixed with superheated air. That's science, mate - just more exciting."
+    fact: "A proper burnout can heat tyre rubber to over 200°C (392°F). The smoke you see is actually vaporized rubber particles mixed with superheated air. That's science, mate - just more exciting.",
+    sort_order: 2,
+    is_active: true,
   },
   {
+    id: '3',
     title: "The 10mm Socket Curse",
-    fact: "Studies show the average mechanic loses 3-5 10mm sockets per year. Scientists believe they may be slipping into a parallel dimension. No other explanation makes sense."
+    fact: "Studies show the average mechanic loses 3-5 10mm sockets per year. Scientists believe they may be slipping into a parallel dimension. No other explanation makes sense.",
+    sort_order: 3,
+    is_active: true,
   },
   {
+    id: '4',
     title: "Shed Acoustics",
-    fact: "The optimal shed size for acoustic privacy while using power tools is 4x3 metres. Any larger and the missus can hear you 'just checking something'. Any smaller and you can't fit the fridge."
+    fact: "The optimal shed size for acoustic privacy while using power tools is 4x3 metres. Any larger and the missus can hear you 'just checking something'. Any smaller and you can't fit the fridge.",
+    sort_order: 4,
+    is_active: true,
   },
   {
+    id: '5',
     title: "Beer Fridge Efficiency",
-    fact: "A dedicated beer fridge in the shed reaches optimal temperature 23% faster than a kitchen fridge. This is due to the 'anticipation factor' - you check it more often."
+    fact: "A dedicated beer fridge in the shed reaches optimal temperature 23% faster than a kitchen fridge. This is due to the 'anticipation factor' - you check it more often.",
+    sort_order: 5,
+    is_active: true,
   },
   {
+    id: '6',
     title: "Torque vs Horsepower",
-    fact: "Horsepower is how fast you hit the wall. Torque is how far you take the wall with you. Both are essential for a proper burnout, but only one impresses the neighbors."
+    fact: "Horsepower is how fast you hit the wall. Torque is how far you take the wall with you. Both are essential for a proper burnout, but only one impresses the neighbors.",
+    sort_order: 6,
+    is_active: true,
   },
   {
+    id: '7',
     title: "The WD-40 Principle",
-    fact: "If it moves and shouldn't: duct tape. If it doesn't move and should: WD-40. This covers approximately 87% of all mechanical problems known to mankind."
+    fact: "If it moves and shouldn't: duct tape. If it doesn't move and should: WD-40. This covers approximately 87% of all mechanical problems known to mankind.",
+    sort_order: 7,
+    is_active: true,
   },
   {
+    id: '8',
     title: "Man Cave Temperature",
-    fact: "The ideal man cave temperature is 22°C - warm enough for comfort, cool enough for the beer fridge to not work overtime. This has been scientifically optimized since 1973."
+    fact: "The ideal man cave temperature is 22°C - warm enough for comfort, cool enough for the beer fridge to not work overtime. This has been scientifically optimized since 1973.",
+    sort_order: 8,
+    is_active: true,
   },
   {
+    id: '9',
     title: "Tool Organization",
-    fact: "The average bloke spends 2.3 hours per week looking for tools. Installing a pegboard reduces this to 47 minutes. The remaining time is spent admiring said pegboard."
+    fact: "The average bloke spends 2.3 hours per week looking for tools. Installing a pegboard reduces this to 47 minutes. The remaining time is spent admiring said pegboard.",
+    sort_order: 9,
+    is_active: true,
   },
   {
+    id: '10',
     title: "Exhaust Note Science",
-    fact: "The human ear finds V8 exhaust notes between 80-120Hz most pleasing. This frequency range triggers the same brain response as a perfectly cooked steak. Coincidence? We think not."
+    fact: "The human ear finds V8 exhaust notes between 80-120Hz most pleasing. This frequency range triggers the same brain response as a perfectly cooked steak. Coincidence? We think not.",
+    sort_order: 10,
+    is_active: true,
   },
 ];
 
-export function BlokeScienceSlider() {
+interface BlokeScienceSliderProps {
+  facts?: BlokeFact[];
+}
+
+export function BlokeScienceSlider({ facts: propFacts }: BlokeScienceSliderProps = {}) {
+  const blokeScienceFacts = propFacts && propFacts.length > 0 ? propFacts : hardcodedFacts;
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [visibleCards, setVisibleCards] = useState<number[]>([]);
@@ -62,7 +100,7 @@ export function BlokeScienceSlider() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [isAutoPlaying]);
+  }, [isAutoPlaying, blokeScienceFacts.length]);
 
   // Animate cards on mount
   useEffect(() => {
@@ -82,7 +120,7 @@ export function BlokeScienceSlider() {
     };
     
     animateIn();
-  }, []);
+  }, [blokeScienceFacts.length]);
 
   const goToPrevious = () => {
     setIsAutoPlaying(false);
@@ -115,7 +153,7 @@ export function BlokeScienceSlider() {
           
           return (
             <div
-              key={factIndex}
+              key={fact.id || factIndex}
               className={`
                 industrial-border bg-[#E3E2D5] p-6 md:p-8 relative transition-all duration-500 ease-out
                 ${isCenter ? 'scale-100 opacity-100 z-10' : 'scale-90 opacity-60 z-0'}
@@ -168,9 +206,9 @@ export function BlokeScienceSlider() {
 
       {/* Progress Dots */}
       <div className="flex justify-center gap-2 mt-6">
-        {blokeScienceFacts.map((_, index) => (
+        {blokeScienceFacts.map((fact, index) => (
           <button
-            key={index}
+            key={fact.id || index}
             onClick={() => {
               setIsAutoPlaying(false);
               setCurrentIndex(index);
@@ -195,4 +233,19 @@ export function BlokeScienceSlider() {
       </div>
     </div>
   );
+}
+
+// Server wrapper to fetch data and pass to client component
+import { getBlokeFacts } from "@/lib/siteSettings";
+
+export async function BlokeScienceSliderServer() {
+  let facts: BlokeFact[];
+  
+  try {
+    facts = await getBlokeFacts();
+  } catch (e) {
+    facts = hardcodedFacts;
+  }
+
+  return <BlokeScienceSlider facts={facts} />;
 }

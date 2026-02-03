@@ -40,6 +40,9 @@ export type BlockType =
   | 'featureGrid'
   | 'imageGallery'
   | 'buttonGroup'
+  // Card and Column layouts
+  | 'cardGrid'
+  | 'imageColumns'
   // Atomic Tawk specific blocks
   | 'atomicHero'
   | 'tickerBar'
@@ -50,6 +53,8 @@ export type BlockType =
   | 'broadcastList'
   | 'categoryIconGrid'
   | 'brandStatement'
+  | 'imageSlider'
+  | 'simpleImage'
 
 // ============================================
 // ATOMIC TAWK SPECIFIC BLOCK PROPS
@@ -650,6 +655,28 @@ export const BLOCK_LIBRARY: BlockDefinition[] = [
     defaultVariant: 'default',
     variants: ['default', 'dark'],
   },
+  {
+    type: 'imageSlider',
+    name: 'Image Slider',
+    description: 'Professional image carousel with optional text & button overlays',
+    icon: '🖼️',
+    category: 'atomic',
+    defaultProps: {
+      slides: [
+        { id: '1', imageUrl: '', title: 'Slide 1', subtitle: '', buttonText: '', buttonLink: '', overlay: true },
+        { id: '2', imageUrl: '', title: 'Slide 2', subtitle: '', buttonText: '', buttonLink: '', overlay: true },
+        { id: '3', imageUrl: '', title: 'Slide 3', subtitle: '', buttonText: '', buttonLink: '', overlay: true },
+      ],
+      autoPlay: true,
+      interval: 5000,
+      showArrows: true,
+      showDots: true,
+      aspectRatio: '16:9',
+      useGallery: false,
+    },
+    defaultVariant: 'default',
+    variants: ['default', 'fullWidth', 'contained'],
+  },
 
   // ============================================
   // GENERIC BLOCKS
@@ -717,6 +744,24 @@ export const BLOCK_LIBRARY: BlockDefinition[] = [
     variants: ['fullWidth', 'framed', 'tilted'],
   },
   {
+    type: 'simpleImage',
+    name: 'Simple Image',
+    description: 'Single image with optional scale and caption',
+    icon: '🖼️',
+    category: 'media',
+    defaultProps: {
+      imageUrl: '',
+      alt: 'Image',
+      caption: '',
+      showCaption: false,
+      scale: 100,
+      alignment: 'center',
+      maxWidth: 'full',
+    },
+    defaultVariant: 'default',
+    variants: ['default', 'rounded', 'framed'],
+  },
+  {
     type: 'video',
     name: 'Video',
     description: 'Embedded video player',
@@ -758,6 +803,44 @@ export const BLOCK_LIBRARY: BlockDefinition[] = [
     },
     defaultVariant: 'default',
     variants: ['default', 'stacked', 'pill'],
+  },
+  {
+    type: 'cardGrid',
+    name: 'Card Grid',
+    description: 'Cards in 1, 2, or 3 column layout',
+    icon: '🃏',
+    category: 'layout',
+    defaultProps: {
+      columns: 3,
+      cards: [
+        { id: '1', title: 'Card Title', description: 'Card description goes here.', image: '', link: '', buttonText: 'Learn More' },
+        { id: '2', title: 'Card Title', description: 'Card description goes here.', image: '', link: '', buttonText: 'Learn More' },
+        { id: '3', title: 'Card Title', description: 'Card description goes here.', image: '', link: '', buttonText: 'Learn More' },
+      ],
+      showImages: true,
+      showButtons: true,
+    },
+    defaultVariant: 'default',
+    variants: ['default', 'bordered', 'elevated'],
+  },
+  {
+    type: 'imageColumns',
+    name: 'Image Columns',
+    description: 'Images in 1, 2, or 3 column layout with optional captions',
+    icon: '🖼️',
+    category: 'layout',
+    defaultProps: {
+      columns: 2,
+      images: [
+        { id: '1', src: '', alt: 'Image 1', caption: '' },
+        { id: '2', src: '', alt: 'Image 2', caption: '' },
+      ],
+      showCaptions: true,
+      aspectRatio: '16:9',
+      gap: 'medium',
+    },
+    defaultVariant: 'default',
+    variants: ['default', 'rounded', 'framed'],
   },
   {
     type: 'communityFeed',

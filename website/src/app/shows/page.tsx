@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ContentCard } from "@/components/ContentCard";
 import { Tv, Wrench, Gamepad2, Beaker, Radio } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
+import { ShowsClient } from "./ShowsClient";
 
 // Server-side data fetching
 async function getContent() {
@@ -70,18 +70,6 @@ const categoryIcons: Record<string, any> = {
 
 export default async function ShowsPage() {
   const { content, categories } = await getContent();
-
-  // Map content to ContentCard format
-  const featuredContent = content.map((item: any) => ({
-    title: item.title,
-    description: item.description || item.subtitle,
-    thumbnailUrl: item.thumbnail_url || "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=800&q=80",
-    href: `/shows/${item.category?.slug || 'general'}/${item.slug}`,
-    category: item.category?.name || 'General',
-    refId: item.subtitle || `AT-${item.id.slice(0,3).toUpperCase()}`,
-    isLive: item.is_featured,
-    duration: item.video_url ? "00:00:00" : undefined,
-  }));
 
   return (
     <div className="min-h-screen bg-[#1f1c13]">
@@ -174,45 +162,7 @@ export default async function ShowsPage() {
 
         {/* Main Content */}
         <main className="flex-1 p-8">
-          {/* Tabs */}
-          <div className="flex border-b-2 border-[#AEACA1] gap-8 overflow-x-auto mb-8">
-            {["All Broadcasts", "Latest Revs", "High Torque", "Archived Data"].map((tab, i) => (
-              <button
-                key={tab}
-                className={`pb-4 border-b-4 text-xs font-black tracking-widest whitespace-nowrap transition-colors uppercase ${
-                  i === 0
-                    ? "border-[#CCAA4C] text-[#CCAA4C]"
-                    : "border-transparent text-[#AEACA1] hover:text-[#E3E2D5]"
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-
-          {/* Content Grid */}
-          {featuredContent.length === 0 ? (
-            <div className="text-center py-16 text-[#AEACA1]">
-              <Radio className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p className="text-xl font-bold uppercase mb-2">No Broadcasts Found</p>
-              <p className="text-sm">Content will appear here once published from the admin panel.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-              {featuredContent.map((content: any) => (
-                <ContentCard key={content.refId} {...content} />
-              ))}
-            </div>
-          )}
-
-          {/* Load More */}
-          {featuredContent.length > 0 && (
-            <div className="text-center mt-12">
-              <button className="px-8 py-4 border-2 border-[#AEACA1] text-[#E3E2D5] font-bold uppercase tracking-widest hover:border-[#CCAA4C] hover:text-[#CCAA4C] transition-colors">
-                Load More Archives
-              </button>
-            </div>
-          )}
+          <ShowsClient content={content} />
         </main>
       </div>
 

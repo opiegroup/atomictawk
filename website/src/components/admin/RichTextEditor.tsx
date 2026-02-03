@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo } from "react";
+import { useMemo, useRef, useCallback, useEffect } from "react";
 import "react-quill-new/dist/quill.snow.css";
 
 // Dynamically import ReactQuill to avoid SSR issues
@@ -22,9 +22,63 @@ interface RichTextEditorProps {
 }
 
 export function RichTextEditor({ value, onChange, placeholder, minHeight = "250px" }: RichTextEditorProps) {
+  const quillRef = useRef<any>(null);
+
+  // Handle paste to preserve line breaks
+  useEffect(() => {
+    if (quillRef.current) {
+      const editor = quillRef.current.getEditor();
+      if (editor) {
+        const container = editor.root;
+        
+        const handlePaste = (e: ClipboardEvent) => {
+          // Check if there's plain text being pasted
+          const plainText = e.clipboardData?.getData('text/plain');
+          const htmlText = e.clipboardData?.getData('text/html');
+          
+          // If no HTML but has plain text with newlines, convert to HTML
+          if (plainText && !htmlText && plainText.includes('\n')) {
+            e.preventDefault();
+            
+            // Convert plain text with newlines to HTML paragraphs
+            const html = plainText
+              .split('\n')
+              .map(line => line.trim() ? `<p>${line}</p>` : '<p><br></p>')
+              .join('');
+            
+            // Insert as HTML
+            const selection = editor.getSelection();
+            if (selection) {
+              editor.clipboard.dangerouslyPasteHTML(selection.index, html);
+            } else {
+              editor.clipboard.dangerouslyPasteHTML(editor.getLength() - 1, html);
+            }
+          }
+        };
+        
+        container.addEventListener('paste', handlePaste);
+        return () => container.removeEventListener('paste', handlePaste);
+      }
+    }
+  }, []);
+
+  // Handle clear all formatting
+  const handleClearAll = useCallback(() => {
+    if (quillRef.current) {
+      const editor = quillRef.current.getEditor();
+      if (editor) {
+        const text = editor.getText();
+        // Convert to plain paragraphs with line breaks preserved
+        const paragraphs = text.split('\n').filter((p: string) => p.trim()).map((p: string) => `<p>${p}</p>`).join('');
+        onChange(paragraphs || '<p></p>');
+      }
+    }
+  }, [onChange]);
+
   const modules = useMemo(() => ({
     toolbar: {
       container: [
+        ["undo", "redo"], // Undo/Redo buttons
         [{ header: [1, 2, 3, 4, false] }],
         [{ font: [] }],
         [{ size: ['small', false, 'large', 'huge'] }],
@@ -37,6 +91,21 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = "250p
         ["link", "image", "video"],
         ["clean"],
       ],
+      handlers: {
+        undo: function() {
+          // @ts-ignore
+          this.quill.history.undo();
+        },
+        redo: function() {
+          // @ts-ignore
+          this.quill.history.redo();
+        },
+      },
+    },
+    history: {
+      delay: 1000,
+      maxStack: 100,
+      userOnly: true,
     },
     clipboard: {
       matchVisual: false,
@@ -301,8 +370,33 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = "250p
           background: #CCAA4C;
           border-radius: 4px;
         }
+        
+        /* Undo/Redo button styling */
+        .rich-text-editor-wrapper .ql-toolbar .ql-undo,
+        .rich-text-editor-wrapper .ql-toolbar .ql-redo {
+          width: 28px;
+          height: 24px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .rich-text-editor-wrapper .ql-toolbar .ql-undo::before {
+          content: '↶';
+          font-size: 18px;
+          color: #AEACA1;
+        }
+        .rich-text-editor-wrapper .ql-toolbar .ql-redo::before {
+          content: '↷';
+          font-size: 18px;
+          color: #AEACA1;
+        }
+        .rich-text-editor-wrapper .ql-toolbar .ql-undo:hover::before,
+        .rich-text-editor-wrapper .ql-toolbar .ql-redo:hover::before {
+          color: #CCAA4C;
+        }
       `}</style>
       <ReactQuill
+        ref={quillRef}
         theme="snow"
         value={value || ''}
         onChange={onChange}
@@ -310,6 +404,16 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = "250p
         formats={formats}
         placeholder={placeholder || "Start writing your content..."}
       />
+      {/* Clear All Formatting Button */}
+      <div className="flex justify-end mt-2 gap-2">
+        <button
+          type="button"
+          onClick={handleClearAll}
+          className="px-3 py-1.5 text-xs font-bold uppercase tracking-wide bg-[#353535] text-[#AEACA1] hover:text-[#CCAA4C] border border-[#CCAA4C]/30 hover:border-[#CCAA4C] rounded transition-colors"
+        >
+          Clear All Formatting
+        </button>
+      </div>
     </div>
   );
 }

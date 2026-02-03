@@ -24,52 +24,76 @@ const placeholderImages = {
   engine: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=800&q=80",
 };
 
-// Try to load the home page from the database
+// Try to load the home page from the database with timeout
 async function getHomePage(): Promise<PageLayout | null> {
-  try {
-    const supabase = await createClient();
-    
-    // Fetch the home page
-    const { data: page, error: pageError } = await supabase
-      .from('pages')
-      .select('*')
-      .eq('slug', 'home')
-      .eq('status', 'published')
-      .single();
+  // Add timeout to prevent hanging
+  const timeoutPromise = new Promise<null>((resolve) => {
+    setTimeout(() => {
+      console.log('Page load timed out, using fallback');
+      resolve(null);
+    }, 10000); // 10 second timeout
+  });
 
-    if (pageError || !page) {
+  const fetchPromise = (async (): Promise<PageLayout | null> => {
+    try {
+      const supabase = await createClient();
+      
+      // Fetch the home page
+      const { data: page, error: pageError } = await supabase
+        .from('pages')
+        .select('*')
+        .eq('slug', 'home')
+        .eq('status', 'published')
+        .single();
+
+      if (pageError || !page) {
+        return null;
+      }
+
+      // Fetch the latest version
+      const { data: version, error: versionError } = await supabase
+        .from('page_versions')
+        .select('*')
+        .eq('page_id', (page as any).id)
+        .order('version_number', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (versionError || !(version as any)?.layout) {
+        return null;
+      }
+
+      return (version as any).layout as PageLayout;
+    } catch (error) {
+      console.error('Error loading home page:', error);
       return null;
     }
+  })();
 
-    // Fetch the latest version
-    const { data: version, error: versionError } = await supabase
-      .from('page_versions')
-      .select('*')
-      .eq('page_id', (page as any).id)
-      .order('version_number', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (versionError || !(version as any)?.layout) {
-      return null;
-    }
-
-    return (version as any).layout as PageLayout;
-  } catch (error) {
-    console.error('Error loading home page:', error);
-    return null;
-  }
+  // Race between fetch and timeout
+  return Promise.race([fetchPromise, timeoutPromise]);
 }
 
 export default async function HomePage() {
-  // Temporarily skip database page loading due to auth issues causing hangs
-  // TODO: Re-enable once auth token refresh is fixed
-  // const pageLayout = await getHomePage();
-  // if (pageLayout) {
-  //   return <PageRenderer layout={pageLayout} />;
-  // }
+  // Toggle: Set to false to use hardcoded fallback, true to use PageBuilder
+  const USE_PAGE_BUILDER = true;
+  
+  // Try to load from database if PageBuilder is enabled
+  if (USE_PAGE_BUILDER) {
+    try {
+      const pageLayout = await getHomePage();
+      if (pageLayout) {
+        return <PageRenderer layout={pageLayout} />;
+      }
+      // If no page found in DB, fall through to hardcoded version
+      console.log('No published home page found in database, using hardcoded fallback');
+    } catch (error) {
+      console.error('Error loading page from database:', error);
+      // Fall through to hardcoded version on error
+    }
+  }
 
-  // Otherwise, render the hardcoded fallback
+  // Hardcoded fallback (set USE_PAGE_BUILDER = false to always use this)
   return (
     <div className="min-h-screen bg-[#E3E2D5]">
       {/* Hero Section */}

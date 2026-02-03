@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react'
 import { Upload, X, Image, Film, Loader2 } from 'lucide-react'
-import { getSupabaseClient } from '@/lib/supabase'
 
 interface MediaUploadProps {
   value: string
@@ -35,6 +34,7 @@ export function MediaUpload({
     setIsUploading(true)
 
     try {
+      const { getSupabaseClient } = await import('@/lib/supabase/client')
       const supabase = getSupabaseClient()
       if (!supabase) {
         throw new Error('Not authenticated')

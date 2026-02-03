@@ -6,7 +6,7 @@ import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { MediaUpload } from "@/components/pageBuilder/MediaUpload";
 import { 
   X, Save, Video, FileText, Plus, Search, Eye, EyeOff, 
-  Trash2, Edit, LayoutGrid, Loader2, Calendar, Tag
+  Trash2, Edit, LayoutGrid, Loader2, Calendar, Tag, FolderPlus, Settings
 } from "lucide-react";
 import { useAuth, useRole, getSupabaseClient } from "@/lib/supabase";
 
@@ -15,6 +15,10 @@ interface Category {
   name: string;
   slug: string;
   icon: string;
+  description?: string;
+  color?: string;
+  sort_order?: number;
+  is_visible?: boolean;
 }
 
 interface ContentItem {
@@ -74,6 +78,12 @@ export default function ContentPage() {
   const [filterCategory, setFilterCategory] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [filterType, setFilterType] = useState<string>("");
+  
+  // Category management
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [savingCategory, setSavingCategory] = useState(false);
 
   // Auth check
   useEffect(() => {
@@ -193,6 +203,77 @@ export default function ContentPage() {
       .replace(/(^-|-$)/g, '');
   };
 
+  // Category management functions
+  const handleSaveCategory = async () => {
+    if (!editingCategory) return;
+    
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    setSavingCategory(true);
+    try {
+      const categoryData = {
+        name: editingCategory.name,
+        slug: editingCategory.slug || generateSlug(editingCategory.name),
+        icon: editingCategory.icon || '📁',
+        description: editingCategory.description || '',
+        color: editingCategory.color || '#CCAA4C',
+        sort_order: editingCategory.sort_order || categories.length,
+        is_visible: editingCategory.is_visible !== false,
+      };
+
+      if (isCreatingCategory) {
+        const { error } = await (supabase as any)
+          .from('categories')
+          .insert(categoryData);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from('categories')
+          .update(categoryData)
+          .eq('id', editingCategory.id);
+        if (error) throw error;
+      }
+
+      await loadData();
+      setEditingCategory(null);
+      setIsCreatingCategory(false);
+    } catch (error: any) {
+      console.error('Error saving category:', error);
+      alert('Error saving category: ' + error.message);
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm('Delete this category? Content using this category will become uncategorized.')) return;
+    
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    try {
+      await (supabase as any).from('categories').delete().eq('id', id);
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting category:', error);
+    }
+  };
+
+  const createNewCategory = () => {
+    setIsCreatingCategory(true);
+    setEditingCategory({
+      id: '',
+      name: '',
+      slug: '',
+      icon: '📁',
+      description: '',
+      color: '#CCAA4C',
+      sort_order: categories.length,
+      is_visible: true,
+    });
+  };
+
   const createNew = () => {
     setIsCreating(true);
     setEditingItem({
@@ -253,13 +334,22 @@ export default function ContentPage() {
             Manage broadcasts, articles, and videos
           </p>
         </div>
-        <button
-          onClick={createNew}
-          className="flex items-center gap-2 px-4 py-2 bg-[#CCAA4C] text-[#1a1a1a] font-bold uppercase text-sm tracking-wider hover:bg-[#CCAA4C]/80"
-        >
-          <Plus className="w-4 h-4" />
-          New Content
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCategoryManager(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#353535] text-white font-bold uppercase text-sm tracking-wider hover:bg-[#454545]"
+          >
+            <FolderPlus className="w-4 h-4" />
+            Categories
+          </button>
+          <button
+            onClick={createNew}
+            className="flex items-center gap-2 px-4 py-2 bg-[#CCAA4C] text-[#1a1a1a] font-bold uppercase text-sm tracking-wider hover:bg-[#CCAA4C]/80"
+          >
+            <Plus className="w-4 h-4" />
+            New Content
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -649,6 +739,179 @@ export default function ContentPage() {
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {isCreating ? 'Create' : 'Save'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Manager Modal */}
+      {showCategoryManager && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center overflow-y-auto p-4">
+          <div className="bg-[#252525] border-4 border-[#CCAA4C] rounded max-w-2xl w-full my-8">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-[#353535] flex items-center justify-between">
+              <h2 className="font-bold text-white text-lg flex items-center gap-2">
+                <FolderPlus className="w-5 h-5 text-[#CCAA4C]" />
+                Manage Categories
+              </h2>
+              <button
+                onClick={() => setShowCategoryManager(false)}
+                className="p-2 text-[#666] hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Category List */}
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-4">
+                <p className="text-sm text-[#888]">{categories.length} categories</p>
+                <button
+                  onClick={createNewCategory}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#CCAA4C] text-[#1a1a1a] font-bold uppercase text-xs hover:bg-[#CCAA4C]/80"
+                >
+                  <Plus className="w-3 h-3" />
+                  Add Category
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {categories.map((cat) => (
+                  <div
+                    key={cat.id}
+                    className="flex items-center justify-between p-3 bg-[#1a1a1a] border border-[#353535] rounded"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{cat.icon}</span>
+                      <div>
+                        <div className="font-bold text-white">{cat.name}</div>
+                        <div className="text-xs text-[#666]">/{cat.slug}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[#888] px-2 py-1 bg-[#353535] rounded">
+                        {content.filter(c => c.category_id === cat.id).length} items
+                      </span>
+                      <button
+                        onClick={() => { setEditingCategory(cat); setIsCreatingCategory(false); }}
+                        className="p-2 text-[#CCAA4C] hover:bg-[#353535] rounded"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCategory(cat.id)}
+                        className="p-2 text-[#666] hover:text-red-500 hover:bg-[#353535] rounded"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Edit/Create Category Form */}
+              {editingCategory && (
+                <div className="mt-6 p-4 bg-[#1a1a1a] border-2 border-[#CCAA4C] rounded">
+                  <h3 className="font-bold text-white mb-4">
+                    {isCreatingCategory ? 'New Category' : 'Edit Category'}
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-[#888] mb-1">Name *</label>
+                        <input
+                          type="text"
+                          value={editingCategory.name}
+                          onChange={(e) => setEditingCategory({
+                            ...editingCategory,
+                            name: e.target.value,
+                            slug: generateSlug(e.target.value)
+                          })}
+                          className="w-full px-3 py-2 bg-[#252525] border border-[#353535] rounded text-white focus:border-[#CCAA4C] focus:outline-none"
+                          placeholder="Category name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-[#888] mb-1">Slug</label>
+                        <input
+                          type="text"
+                          value={editingCategory.slug}
+                          onChange={(e) => setEditingCategory({ ...editingCategory, slug: e.target.value })}
+                          className="w-full px-3 py-2 bg-[#252525] border border-[#353535] rounded text-white focus:border-[#CCAA4C] focus:outline-none"
+                          placeholder="url-slug"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-[#888] mb-1">Icon (emoji)</label>
+                        <input
+                          type="text"
+                          value={editingCategory.icon}
+                          onChange={(e) => setEditingCategory({ ...editingCategory, icon: e.target.value })}
+                          className="w-full px-3 py-2 bg-[#252525] border border-[#353535] rounded text-white focus:border-[#CCAA4C] focus:outline-none text-center text-2xl"
+                          placeholder="📁"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-[#888] mb-1">Color</label>
+                        <input
+                          type="color"
+                          value={editingCategory.color || '#CCAA4C'}
+                          onChange={(e) => setEditingCategory({ ...editingCategory, color: e.target.value })}
+                          className="w-full h-10 bg-[#252525] border border-[#353535] rounded cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-[#888] mb-1">Sort Order</label>
+                        <input
+                          type="number"
+                          value={editingCategory.sort_order || 0}
+                          onChange={(e) => setEditingCategory({ ...editingCategory, sort_order: parseInt(e.target.value) || 0 })}
+                          className="w-full px-3 py-2 bg-[#252525] border border-[#353535] rounded text-white focus:border-[#CCAA4C] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-[#888] mb-1">Description</label>
+                      <input
+                        type="text"
+                        value={editingCategory.description || ''}
+                        onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#252525] border border-[#353535] rounded text-white focus:border-[#CCAA4C] focus:outline-none"
+                        placeholder="Optional description"
+                      />
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editingCategory.is_visible !== false}
+                          onChange={(e) => setEditingCategory({ ...editingCategory, is_visible: e.target.checked })}
+                          className="w-4 h-4 accent-[#CCAA4C]"
+                        />
+                        <span className="text-sm text-white">Visible in navigation</span>
+                      </label>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <button
+                        onClick={() => { setEditingCategory(null); setIsCreatingCategory(false); }}
+                        className="px-4 py-2 text-[#888] hover:text-white font-bold uppercase text-sm"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSaveCategory}
+                        disabled={savingCategory || !editingCategory.name}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#CCAA4C] text-[#1a1a1a] font-bold uppercase text-sm hover:bg-[#CCAA4C]/80 disabled:opacity-50"
+                      >
+                        {savingCategory ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {isCreatingCategory ? 'Create' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

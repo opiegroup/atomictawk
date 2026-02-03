@@ -69,7 +69,7 @@ function LibraryBlock({
 
 export function BlockLibrary({ onAddBlock, onDragStart, onDragEnd }: BlockLibraryProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<BlockCategory>>(
-    new Set(['hero', 'content', 'media'])
+    new Set(['atomic', 'hero', 'content', 'media'])
   )
 
   const toggleCategory = (category: BlockCategory) => {

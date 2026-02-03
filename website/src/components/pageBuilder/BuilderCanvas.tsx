@@ -108,16 +108,16 @@ function DraggableBlock({
           e.stopPropagation()
           onSelect()
         }}
-        className={`relative border-2 transition-all cursor-pointer ${
+        className={`relative border-2 cursor-pointer ${
           isSelected
             ? 'border-[#CCAA4C] shadow-[0_0_20px_rgba(204,170,76,0.3)]'
             : 'border-transparent hover:border-[#CCAA4C]/50'
-        } ${!block.visible ? 'opacity-50' : ''}`}
+        }`}
       >
-        {/* Block Controls - Top Bar */}
+        {/* Block Controls - Top Bar - Always visible on hover, no animation */}
         <div
-          className={`absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 py-2 bg-[#252525]/95 backdrop-blur-sm border-b border-[#CCAA4C] transition-all ${
-            isSelected ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full group-hover:opacity-100 group-hover:translate-y-0'
+          className={`absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 py-2 bg-[#252525]/95 backdrop-blur-sm border-b border-[#CCAA4C] ${
+            isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
           }`}
         >
           {/* Left - Drag Handle & Type */}

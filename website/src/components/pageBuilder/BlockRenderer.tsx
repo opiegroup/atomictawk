@@ -1,1561 +1,1735 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { PageBlock, THEME_COLORS, BlockStyling, BlockButton, ButtonsConfig } from '@/lib/pageBuilder'
-import Link from 'next/link'
-import Image from 'next/image'
-import { 
-  Settings, Gamepad2, Trophy, Zap, Star, ShoppingBag, MessageSquare, 
-  Users, Camera, Tag, Tv, Play, Radio, Headphones, Share2, Heart,
-  AlertTriangle, Wrench, ChevronLeft, ChevronRight, FileText
-} from 'lucide-react'
-// Placeholder components - actual data fetching disabled in page builder preview
-function FeaturedContent({ heading, maxItems, showHeading = true }: any) {
-  return (
-    <div className="max-w-[1200px] mx-auto px-6 py-16">
-      {showHeading && (
-        <h2 className="text-3xl font-black uppercase tracking-tighter bg-[#353535] text-white px-6 py-2 inline-block mb-8">
-          {heading || 'Featured Content'}
-        </h2>
-      )}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {Array.from({ length: maxItems || 3 }).map((_, i) => (
-          <div key={i} className="bg-[#E3E2D5] p-4 border-4 border-[#353535]">
-            <div className="aspect-[4/5] bg-[#353535]/20 mb-4" />
-            <div className="h-6 bg-[#353535]/30 mb-2" />
-            <div className="h-4 bg-[#353535]/20" />
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function LatestBroadcasts({ heading, maxItems, variant }: any) {
-  return (
-    <div className="max-w-[1200px] mx-auto px-6 py-16">
-      <h2 className="text-3xl font-black uppercase tracking-tighter bg-[#353535] text-white px-6 py-2 inline-block mb-8">
-        {heading || 'Latest Broadcasts'}
-      </h2>
-      <div className="space-y-4">
-        {Array.from({ length: maxItems || 5 }).map((_, i) => (
-          <div key={i} className="flex gap-4 bg-[#E3E2D5] p-4 border-2 border-[#353535]">
-            <div className="w-32 h-20 bg-[#353535]/20" />
-            <div className="flex-1">
-              <div className="h-5 bg-[#353535]/30 mb-2 w-3/4" />
-              <div className="h-4 bg-[#353535]/20 w-1/2" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+import React from 'react'
+import { PageBlock } from '@/lib/pageBuilder'
+import { Gamepad2, ShoppingBag, MessageSquare, Trophy, Tag, Users, Camera, Tv, Zap, Star } from 'lucide-react'
 
 interface BlockRendererProps {
   block: PageBlock
   isEditing?: boolean
 }
 
-// Style wrapper for applying common styling to all blocks
-function BlockStyleWrapper({ 
-  styling, 
-  buttons,
-  buttonsConfig,
-  isEditing,
-  children 
-}: { 
-  styling?: BlockStyling
-  buttons?: BlockButton[]
-  buttonsConfig?: ButtonsConfig
-  isEditing: boolean
-  children: React.ReactNode 
-}) {
-  // Build inline styles
-  const wrapperStyle: React.CSSProperties = {}
-  
-  // Background
-  if (styling?.backgroundColor) {
-    wrapperStyle.backgroundColor = styling.backgroundColor
+// Helper to get background - gradient takes priority only if it has actual content
+function getBackground(styling: any, defaultBg?: string): string | undefined {
+  // Check if gradient has actual content (not empty/null/undefined)
+  if (styling.backgroundGradient && styling.backgroundGradient.trim() !== '') {
+    return styling.backgroundGradient
   }
-  if (styling?.backgroundGradient) {
-    wrapperStyle.background = styling.backgroundGradient
+  // Check if backgroundColor has actual content
+  if (styling.backgroundColor && styling.backgroundColor.trim() !== '') {
+    return styling.backgroundColor
   }
-  if (styling?.backgroundImage && !styling?.backgroundVideo) {
-    wrapperStyle.backgroundImage = `url(${styling.backgroundImage})`
-    wrapperStyle.backgroundSize = 'cover'
-    wrapperStyle.backgroundPosition = 'center'
-  }
-  
-  // Text color
-  if (styling?.textColor) {
-    wrapperStyle.color = styling.textColor
-  }
-
-  // Build classes
-  const classes: string[] = ['relative']
-  
-  // Padding
-  const paddingMap = {
-    none: 'py-0',
-    small: 'py-4',
-    medium: 'py-8',
-    large: 'py-16',
-    xlarge: 'py-24',
-  }
-  if (styling?.paddingTop) classes.push(paddingMap[styling.paddingTop]?.replace('py-', 'pt-') || '')
-  if (styling?.paddingBottom) classes.push(paddingMap[styling.paddingBottom]?.replace('py-', 'pb-') || '')
-  
-  // Border radius
-  const radiusMap = {
-    none: '',
-    small: 'rounded',
-    medium: 'rounded-lg',
-    large: 'rounded-2xl',
-  }
-  if (styling?.borderRadius) classes.push(radiusMap[styling.borderRadius] || '')
-  
-  // Frame styles
-  const frameStyles: Record<string, string> = {
-    none: '',
-    solid: 'border-2',
-    thick: 'border-4',
-    industrial: 'border-4 shadow-[4px_4px_0px_0px]',
-    double: 'border-4 outline outline-2 outline-offset-2',
-    dashed: 'border-4 border-dashed',
-  }
-  if (styling?.frameStyle && styling.frameStyle !== 'none') {
-    classes.push(frameStyles[styling.frameStyle] || '')
-  }
-
-  // Texture overlay class
-  const textureClasses: Record<string, string> = {
-    halftone: 'halftone-overlay',
-    noise: 'noise-overlay',
-    scanlines: 'crt-scanline',
-    metal: 'metal-overlay',
-    paper: 'paper-overlay',
-  }
-
-  // Button rendering helper with positioning
-  const renderButtons = () => {
-    if (!buttons || buttons.length === 0) return null
-    
-    const config = buttonsConfig || { position: 'bottom-center', spacing: 'normal', direction: 'horizontal' }
-    
-    const getButtonClasses = (style: string, size: string) => {
-      const baseClasses = 'font-bold uppercase tracking-widest transition-all border-4 inline-flex items-center gap-2'
-      const sizeClasses = {
-        small: 'px-4 py-2 text-xs',
-        medium: 'px-6 py-3 text-sm',
-        large: 'px-8 py-4 text-base',
-      }
-      const styleClasses = {
-        primary: 'bg-[#CCAA4C] border-[#CCAA4C] text-[#1a1a1a] hover:bg-[#FF6B35] hover:border-[#FF6B35] hover:text-white',
-        secondary: 'bg-[#353535] border-[#353535] text-white hover:bg-[#CCAA4C] hover:border-[#CCAA4C] hover:text-[#1a1a1a]',
-        outline: 'bg-transparent border-[#CCAA4C] text-[#CCAA4C] hover:bg-[#CCAA4C] hover:text-[#1a1a1a]',
-        ghost: 'bg-transparent border-transparent text-[#CCAA4C] hover:bg-[#CCAA4C]/10',
-      }
-      return `${baseClasses} ${sizeClasses[size as keyof typeof sizeClasses] || sizeClasses.medium} ${styleClasses[style as keyof typeof styleClasses] || styleClasses.primary}`
-    }
-
-    // Position classes for absolute positioning within block
-    const positionClasses: Record<string, string> = {
-      'bottom-center': 'absolute bottom-6 left-1/2 -translate-x-1/2',
-      'bottom-left': 'absolute bottom-6 left-6',
-      'bottom-right': 'absolute bottom-6 right-6',
-      'top-center': 'absolute top-6 left-1/2 -translate-x-1/2',
-      'top-left': 'absolute top-6 left-6',
-      'top-right': 'absolute top-6 right-6',
-      'center': 'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-      'inline': '', // No absolute positioning - flows with content
-    }
-
-    const spacingClasses = {
-      tight: 'gap-2',
-      normal: 'gap-4',
-      wide: 'gap-6',
-    }
-
-    const directionClasses = {
-      horizontal: 'flex-row flex-wrap',
-      vertical: 'flex-col',
-    }
-
-    const containerClasses = `
-      flex ${directionClasses[config.direction] || 'flex-row'} 
-      ${spacingClasses[config.spacing] || 'gap-4'}
-      ${positionClasses[config.position] || ''} 
-      z-20
-    `
-
-    const containerStyle: React.CSSProperties = {}
-    if (config.marginTop) containerStyle.marginTop = `${config.marginTop}px`
-    if (config.marginBottom) containerStyle.marginBottom = `${config.marginBottom}px`
-
-    // For inline position, render at the end of content
-    if (config.position === 'inline') {
-      return null // Will be handled differently
-    }
-
-    return (
-      <div className={containerClasses} style={containerStyle}>
-        {buttons.map((btn) => (
-          isEditing ? (
-            <span key={btn.id} className={getButtonClasses(btn.style, btn.size)}>
-              {btn.icon && <span>{btn.icon}</span>}
-              {btn.text}
-            </span>
-          ) : (
-            <Link key={btn.id} href={btn.link || '/'} className={getButtonClasses(btn.style, btn.size)}>
-              {btn.icon && <span>{btn.icon}</span>}
-              {btn.text}
-            </Link>
-          )
-        ))}
-      </div>
-    )
-  }
-
-  // Inline buttons (rendered after content)
-  const renderInlineButtons = () => {
-    if (!buttons || buttons.length === 0) return null
-    const config = buttonsConfig || { position: 'bottom-center', spacing: 'normal', direction: 'horizontal' }
-    if (config.position !== 'inline') return null
-
-    const getButtonClasses = (style: string, size: string) => {
-      const baseClasses = 'font-bold uppercase tracking-widest transition-all border-4 inline-flex items-center gap-2'
-      const sizeClasses = {
-        small: 'px-4 py-2 text-xs',
-        medium: 'px-6 py-3 text-sm',
-        large: 'px-8 py-4 text-base',
-      }
-      const styleClasses = {
-        primary: 'bg-[#CCAA4C] border-[#CCAA4C] text-[#1a1a1a] hover:bg-[#FF6B35] hover:border-[#FF6B35] hover:text-white',
-        secondary: 'bg-[#353535] border-[#353535] text-white hover:bg-[#CCAA4C] hover:border-[#CCAA4C] hover:text-[#1a1a1a]',
-        outline: 'bg-transparent border-[#CCAA4C] text-[#CCAA4C] hover:bg-[#CCAA4C] hover:text-[#1a1a1a]',
-        ghost: 'bg-transparent border-transparent text-[#CCAA4C] hover:bg-[#CCAA4C]/10',
-      }
-      return `${baseClasses} ${sizeClasses[size as keyof typeof sizeClasses] || sizeClasses.medium} ${styleClasses[style as keyof typeof styleClasses] || styleClasses.primary}`
-    }
-
-    const spacingClasses = { tight: 'gap-2', normal: 'gap-4', wide: 'gap-6' }
-    const directionClasses = { horizontal: 'flex-row flex-wrap', vertical: 'flex-col' }
-
-    return (
-      <div 
-        className={`flex justify-center ${directionClasses[config.direction] || 'flex-row'} ${spacingClasses[config.spacing] || 'gap-4'} px-6 pb-6`}
-        style={{ 
-          marginTop: config.marginTop ? `${config.marginTop}px` : '24px',
-          marginBottom: config.marginBottom ? `${config.marginBottom}px` : '0',
-        }}
-      >
-        {buttons.map((btn) => (
-          isEditing ? (
-            <span key={btn.id} className={getButtonClasses(btn.style, btn.size)}>
-              {btn.icon && <span>{btn.icon}</span>}
-              {btn.text}
-            </span>
-          ) : (
-            <Link key={btn.id} href={btn.link || '/'} className={getButtonClasses(btn.style, btn.size)}>
-              {btn.icon && <span>{btn.icon}</span>}
-              {btn.text}
-            </Link>
-          )
-        ))}
-      </div>
-    )
-  }
-
-  const hasBackgroundMedia = styling?.backgroundImage || styling?.backgroundVideo
-
-  return (
-    <div 
-      className={`${classes.join(' ')} overflow-hidden`}
-      style={{
-        ...wrapperStyle,
-        borderColor: styling?.frameColor || '#CCAA4C',
-        ['--shadow-color' as any]: styling?.frameColor || '#CCAA4C',
-      }}
-    >
-      {/* Background Video */}
-      {styling?.backgroundVideo && (
-        <video
-          src={styling.backgroundVideo}
-          className="absolute inset-0 w-full h-full object-cover"
-          autoPlay
-          muted
-          loop
-          playsInline
-        />
-      )}
-      
-      {/* Background overlay for images/videos */}
-      {hasBackgroundMedia && (
-        <div 
-          className="absolute inset-0 bg-black pointer-events-none"
-          style={{ opacity: (styling?.backgroundOverlay ?? 50) / 100 }}
-        />
-      )}
-      
-      {/* Texture overlay */}
-      {styling?.textureOverlay && styling.textureOverlay !== 'none' && (
-        <div 
-          className={`absolute inset-0 pointer-events-none ${textureClasses[styling.textureOverlay] || ''}`}
-          style={{ opacity: (styling?.textureOpacity ?? 20) / 100 }}
-        />
-      )}
-      
-      {/* Content */}
-      <div className="relative z-10">
-        {children}
-        {renderInlineButtons()}
-      </div>
-
-      {/* Positioned buttons (non-inline) */}
-      {renderButtons()}
-    </div>
-  )
+  // Return default
+  return defaultBg
 }
 
-export function BlockRenderer({ block, isEditing = false }: BlockRendererProps) {
-  if (!block.visible && !isEditing) return null
-
-  const renderBlock = () => {
-    switch (block.type) {
-      // Atomic Tawk specific blocks
-      case 'atomicHero':
-        return <AtomicHeroBlock block={block} isEditing={isEditing} />
-      case 'tickerBar':
-        return <TickerBarBlock block={block} />
-      case 'featureModuleGrid':
-        return <FeatureModuleGridBlock block={block} isEditing={isEditing} />
-      case 'atomicTVBanner':
-        return <AtomicTVBannerBlock block={block} isEditing={isEditing} />
-      case 'propagandaGrid':
-        return <PropagandaGridBlock block={block} isEditing={isEditing} />
-      case 'blokeScienceSlider':
-        return <BlokeScienceSliderBlock block={block} />
-      case 'broadcastList':
-        return <BroadcastListBlock block={block} isEditing={isEditing} />
-      case 'categoryIconGrid':
-        return <CategoryIconGridBlock block={block} isEditing={isEditing} />
-      case 'brandStatement':
-        return <BrandStatementBlock block={block} />
-      // Generic blocks
-      case 'hero':
-        return <HeroBlock block={block} isEditing={isEditing} />
-      case 'richText':
-        return <RichTextBlock block={block} />
-      case 'ctaStrip':
-        return <CTAStripBlock block={block} />
-      case 'poster':
-        return <PosterBlock block={block} />
-      case 'video':
-        return <VideoBlock block={block} />
-      case 'divider':
-        return <DividerBlock block={block} />
-      case 'buttonGroup':
-        return <ButtonGroupBlock block={block} isEditing={isEditing} />
-      case 'communityFeed':
-        return <CommunityFeedBlock block={block} isEditing={isEditing} />
-      case 'productEmbed':
-        return <ProductEmbedBlock block={block} isEditing={isEditing} />
-      default:
-        return (
-          <div className="p-8 bg-[#252525] text-center">
-            <p className="text-[#666]">Unknown block type: {block.type}</p>
-          </div>
-        )
-    }
-  }
-
-  // Wrap with style wrapper to apply common styling + additional buttons
-  return (
-    <BlockStyleWrapper 
-      styling={block.styling} 
-      buttons={block.buttons}
-      buttonsConfig={block.buttonsConfig}
-      isEditing={isEditing}
-    >
-      {renderBlock()}
-    </BlockStyleWrapper>
-  )
-}
-
-// ============================================
-// ATOMIC TAWK SPECIFIC BLOCKS
-// ============================================
-
-// ATOMIC HERO
-function AtomicHeroBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
-  const { logoUrl, headline, subheadline, primaryButtonText, primaryButtonLink, secondaryButtonText, secondaryButtonLink, showDecorativeGears } = block.props
-
-  const Wrapper = isEditing ? 'div' : Link
-
-  // Check if block has custom background styling (video/image/color)
-  const hasCustomBackground = block.styling?.backgroundVideo || block.styling?.backgroundImage || block.styling?.backgroundColor || block.styling?.backgroundGradient
-  const bgClass = hasCustomBackground ? 'bg-transparent' : 'bg-[#E3E2D5]'
+// Visual WYSIWYG BlockRenderer - renders actual block previews
+export function BlockRenderer({ block, isEditing }: BlockRendererProps) {
+  const props = block.props || {}
+  const styling = block.styling || {}
   
-  // Get text color from styling or default
-  const textColor = block.styling?.textColor || '#353535'
-  const isLightText = textColor === '#FFFFFF' || textColor === '#ffffff' || textColor === 'white' || textColor === '#E3E2D5'
-
-  return (
-    <section className={`relative ${bgClass} py-16 md:py-24 border-b-8 border-[#353535] overflow-hidden`}>
-      {!hasCustomBackground && <div className="absolute inset-0 halftone-overlay"></div>}
+  // Common wrapper style
+  const wrapperClass = isEditing ? 'pointer-events-none' : ''
+  
+  switch (block.type) {
+    // ============================================
+    // HERO BLOCKS - Atomic Tawk Industrial Style
+    // ============================================
+    case 'hero':
+    case 'atomicHero':
+      // Check for video in styling (where it's actually saved) or props
+      const hasVideo = styling.backgroundVideo || props.backgroundVideo || props.videoUrl
+      const videoUrl = styling.backgroundVideo || props.backgroundVideo || props.videoUrl
+      const overlayOpacity = styling.backgroundOverlay ?? props.overlayOpacity ?? 50
       
-      {/* Decorative Gears */}
-      {showDecorativeGears && (
-        <>
-          <Settings 
-            className="absolute -bottom-10 -left-10 w-[200px] h-[200px] opacity-10 animate-spin-slow" 
-            style={{ color: textColor }}
-          />
-          <Settings 
-            className="absolute -top-10 -right-10 w-[150px] h-[150px] opacity-10 animate-spin-slow" 
-            style={{ animationDirection: "reverse", color: textColor }}
-          />
-        </>
-      )}
-
-      <div className="max-w-[1200px] mx-auto px-6 relative z-10 flex flex-col items-center text-center">
-        {/* Logo */}
-        {logoUrl && (
-          <Image
-            src={logoUrl}
-            alt="Atomic Tawk"
-            width={400}
-            height={300}
-            className="mb-8 drop-shadow-2xl"
-          />
-        )}
-
-        {/* Main Headline */}
-        <h1 
-          className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.85] tracking-tighter uppercase mb-4 drop-shadow-md whitespace-pre-line"
-          style={{ fontFamily: "var(--font-oswald), sans-serif", color: textColor }}
+      // Get background image from styling or props
+      const bgImage = styling.backgroundImage || props.backgroundImage
+      
+      return (
+        <div 
+          className={`relative min-h-[500px] flex items-center justify-center overflow-hidden ${wrapperClass}`}
+          style={{
+            backgroundImage: !hasVideo && bgImage 
+              ? `url(${bgImage})` 
+              : !hasVideo ? 'radial-gradient(circle at center, #E8E7DA 0%, #D4D3C6 100%)' : undefined,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundColor: hasVideo ? '#1a1a1a' : undefined,
+          }}
         >
-          {headline}
-        </h1>
-
-        {/* Subtitle */}
-        <div 
-          className="px-8 py-2 mb-8 inline-block skew-x-[-12deg]"
-          style={{ backgroundColor: isLightText ? '#353535' : textColor }}
-        >
-          <h2 
-            className="text-lg md:text-2xl font-bold italic uppercase tracking-[0.2em] skew-x-[12deg]"
-            style={{ fontFamily: "var(--font-oswald), sans-serif", color: isLightText ? 'white' : '#E3E2D5' }}
-          >
-            {subheadline}
-          </h2>
-        </div>
-
-        {/* CTA Buttons */}
-        <div className="flex flex-wrap justify-center gap-6">
-          {primaryButtonText && (
-            isEditing ? (
-              <span 
-                className="px-8 py-4 bg-[#CCAA4C] font-bold uppercase tracking-widest border-4"
-                style={{ borderColor: isLightText ? 'white' : '#353535', color: '#353535' }}
-              >
-                {primaryButtonText}
-              </span>
-            ) : (
-              <Link 
-                href={primaryButtonLink || '#'} 
-                className="px-8 py-4 bg-[#CCAA4C] font-bold uppercase tracking-widest border-4 hover:bg-[#FF6B35] hover:text-white transition-colors"
-                style={{ borderColor: isLightText ? 'white' : '#353535', color: '#353535' }}
-              >
-                {primaryButtonText}
-              </Link>
-            )
+          {/* Background Video */}
+          {hasVideo && videoUrl && (
+            <>
+              <video
+                src={videoUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover z-0"
+                style={{ objectFit: 'cover' }}
+              />
+              {/* Video indicator badge */}
+              <div className="absolute top-2 left-2 z-50 bg-black/80 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                <span>📹</span> Video Background
+              </div>
+            </>
           )}
-          {secondaryButtonText && (
-            isEditing ? (
-              <span 
-                className="px-8 py-4 bg-transparent font-bold uppercase tracking-widest border-4"
-                style={{ borderColor: isLightText ? 'white' : '#353535', color: textColor }}
-              >
-                {secondaryButtonText}
-              </span>
-            ) : (
-              <Link 
-                href={secondaryButtonLink || '#'} 
-                className="px-8 py-4 bg-transparent font-bold uppercase tracking-widest border-4 hover:bg-opacity-20 transition-colors"
-                style={{ borderColor: isLightText ? 'white' : '#353535', color: textColor }}
-              >
-                {secondaryButtonText}
-              </Link>
-            )
+          
+          {/* Overlay for video */}
+          {hasVideo && (
+            <div 
+              className="absolute inset-0 bg-black"
+              style={{ opacity: overlayOpacity / 100 }}
+            />
           )}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// TICKER BAR
-function TickerBarBlock({ block }: { block: PageBlock }) {
-  const { items } = block.props
-
-  const iconMap: Record<string, any> = {
-    bolt: Zap,
-    warning: AlertTriangle,
-    construction: Wrench,
-    gaming: Gamepad2,
-  }
-
-  const allItems = [...(items || []), ...(items || [])]
-
-  return (
-    <div className="bg-[#353535] py-3 border-b-4 border-[#CCAA4C] overflow-hidden whitespace-nowrap">
-      <div className="animate-marquee flex gap-20 items-center">
-        {allItems.map((item: any, index: number) => {
-          const Icon = iconMap[item.icon] || Zap
-          return (
-            <div
-              key={index}
-              className={`flex items-center gap-4 font-bold uppercase tracking-widest text-sm ${
-                item.highlight ? "text-[#CCAA4C]" : "text-white"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{item.text}</span>
+          
+          {/* Halftone texture overlay (only if no video) */}
+          {!hasVideo && (
+            <div 
+              className="absolute inset-0"
+              style={{ 
+                backgroundImage: 'radial-gradient(circle, #00000008 1px, transparent 1px)',
+                backgroundSize: '4px 4px',
+              }}
+            />
+          )}
+          
+          {/* Content */}
+          <div className={`relative z-10 text-center px-8 max-w-4xl ${
+            props.alignment === 'left' ? 'text-left mr-auto' : 
+            props.alignment === 'right' ? 'text-right ml-auto' : 'text-center mx-auto'
+          }`}>
+            {/* Logo - use props.logoUrl or default, with scale control */}
+            <div className="mb-8">
+              <img 
+                src={props.logoUrl || '/logo.png'} 
+                alt="Atomic Tawk" 
+                className="mx-auto"
+                style={{ 
+                  height: `${(props.logoScale ?? 100) * 1.28}px`, // Base height 128px (h-32) scaled
+                  maxWidth: `${(props.logoScale ?? 100) * 3}px`, // Base max-width 300px scaled
+                  objectFit: 'contain',
+                }}
+              />
             </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-// FEATURE MODULE GRID
-function FeatureModuleGridBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
-  const { modules } = block.props
-
-  const accentColors: Record<string, { border: string; bg: string; text: string; badge: string }> = {
-    orange: { border: 'border-[#FF6B35]', bg: 'bg-[#FF6B35]', text: 'text-[#FF6B35]', badge: 'bg-[#FF6B35] text-white' },
-    gold: { border: 'border-[#CCAA4C]', bg: 'bg-[#CCAA4C]', text: 'text-[#CCAA4C]', badge: 'bg-[#CCAA4C] text-[#353535]' },
-    green: { border: 'border-[#39FF14]', bg: 'bg-[#39FF14]', text: 'text-[#39FF14]', badge: 'bg-[#39FF14] text-[#353535]' },
-  }
-
-  const moduleIcons: Record<string, any> = {
-    game: Gamepad2,
-    store: ShoppingBag,
-    community: MessageSquare,
-    custom: Star,
-  }
-
-  return (
-    <section className="max-w-[1400px] mx-auto px-6 py-12">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(modules || []).map((module: any) => {
-          const colors = accentColors[module.accentColor] || accentColors.gold
-          const Icon = moduleIcons[module.type] || Star
-
-          return (
-            <div key={module.id} className={`relative overflow-hidden border-4 ${colors.border} bg-gradient-to-br from-[#353535] to-[#1f1c13]`}>
-              {/* Badge */}
-              <div className={`absolute top-0 right-0 px-4 py-1 ${colors.badge}`}>
-                <span className="text-xs font-black uppercase tracking-widest">{module.badge}</span>
-              </div>
-              
-              {/* Background Icons */}
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute top-4 left-4">
-                  <Icon className={`w-32 h-32 ${colors.text}`} />
-                </div>
-              </div>
-              
-              <div className="relative p-8">
-                {/* Icon */}
-                <div className={`w-20 h-20 ${colors.bg} flex items-center justify-center mb-6 border-4 border-[#CCAA4C]`}>
-                  <Icon className="w-10 h-10 text-white" />
-                </div>
-                
-                {/* Title */}
-                <h2 
-                  className="text-3xl md:text-4xl font-black uppercase tracking-tight text-white mb-2"
-                  style={{ fontFamily: "var(--font-oswald), sans-serif" }}
-                >
-                  {module.title}
-                </h2>
-                
-                <p className={`${colors.text} font-bold uppercase text-sm tracking-widest mb-4`}>
-                  {module.subtitle}
-                </p>
-                
-                <p className="text-white/70 text-sm mb-6 max-w-md">
-                  {module.description}
-                </p>
-                
-                {/* Features */}
-                <div className="flex flex-wrap gap-3 mb-6">
-                  {(module.features || []).map((feature: any, i: number) => (
-                    <div 
-                      key={i}
-                      className="flex items-center gap-2 bg-white/10 px-3 py-1 border border-white/20"
-                    >
-                      <span>{feature.icon}</span>
-                      <span className="text-white text-xs font-bold uppercase">{feature.label}</span>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* CTA */}
-                {isEditing ? (
-                  <span className={`inline-flex items-center gap-3 ${colors.bg} text-white px-8 py-4 font-black uppercase text-sm tracking-widest`}>
-                    <Icon className="w-5 h-5" />
-                    {module.buttonText}
-                  </span>
-                ) : (
-                  <Link href={module.buttonLink || '#'} className={`inline-flex items-center gap-3 ${colors.bg} hover:bg-[#CCAA4C] text-white hover:text-[#353535] px-8 py-4 font-black uppercase text-sm tracking-widest transition-all`}>
-                    <Icon className="w-5 h-5" />
-                    {module.buttonText}
-                  </Link>
+            
+            {/* Main headline - uses styling.textColor */}
+            <h1 
+              className="text-5xl md:text-7xl font-black uppercase leading-[0.85] tracking-tighter mb-4"
+              style={{ 
+                fontFamily: 'var(--font-oswald), sans-serif',
+                color: styling.textColor || '#353535',
+              }}
+            >
+              {(props.title || props.headline || 'Tawk Loud.\nDrive Louder.\nFeel Prouder.').split('\n').map((line: string, i: number) => (
+                <React.Fragment key={i}>
+                  {line}
+                  {i < (props.title || props.headline || 'Tawk Loud.\nDrive Louder.\nFeel Prouder.').split('\n').length - 1 && <br />}
+                </React.Fragment>
+              ))}
+            </h1>
+            
+            {/* Subtitle in skewed banner style - uses styling.accentColor */}
+            <div 
+              className="inline-block px-8 py-2 mb-8"
+              style={{ 
+                transform: 'skewX(-12deg)',
+                backgroundColor: styling.accentColor || '#353535',
+              }}
+            >
+              <p 
+                className="text-lg md:text-2xl font-bold italic uppercase tracking-[0.2em]"
+                style={{ 
+                  fontFamily: 'var(--font-oswald), sans-serif',
+                  color: 'white',
+                  transform: 'skewX(12deg)',
+                }}
+              >
+                {props.subtitle || props.subheadline || 'Where real blokes talk torque.'}
+              </p>
+            </div>
+            
+            {/* Industrial style buttons - uses styling colors */}
+            {((props.showPrimaryButton ?? true) || (props.showSecondaryButton ?? true)) && (
+              <div className="flex flex-wrap justify-center gap-6 mt-6">
+                {(props.showPrimaryButton ?? true) && (
+                  <button 
+                    className="relative px-16 py-5 font-bold uppercase tracking-wider text-lg border-4"
+                    style={{ 
+                      fontFamily: 'var(--font-oswald), sans-serif',
+                      backgroundColor: styling.accentColor || '#C9A227',
+                      borderColor: props.primaryButtonTextColor || styling.textColor || '#353535',
+                      color: props.primaryButtonTextColor || styling.textColor || '#353535',
+                    }}
+                  >
+                    {/* Clean corner dots */}
+                    <span className="absolute top-3 left-4 w-2 h-2 rounded-full" style={{ backgroundColor: props.primaryButtonTextColor || styling.textColor || '#353535' }} />
+                    <span className="absolute top-3 right-4 w-2 h-2 rounded-full" style={{ backgroundColor: props.primaryButtonTextColor || styling.textColor || '#353535' }} />
+                    <span className="absolute bottom-3 left-4 w-2 h-2 rounded-full" style={{ backgroundColor: props.primaryButtonTextColor || styling.textColor || '#353535' }} />
+                    <span className="absolute bottom-3 right-4 w-2 h-2 rounded-full" style={{ backgroundColor: props.primaryButtonTextColor || styling.textColor || '#353535' }} />
+                    {props.primaryButtonText || props.buttonText || 'Start Broadcast'}
+                  </button>
+                )}
+                {(props.showSecondaryButton ?? true) && (
+                  <button 
+                    className="relative px-16 py-5 font-bold uppercase tracking-wider text-lg border-4"
+                    style={{ 
+                      fontFamily: 'var(--font-oswald), sans-serif',
+                      backgroundColor: '#FFFFFF',
+                      borderColor: props.secondaryButtonTextColor || styling.textColor || '#353535',
+                      color: props.secondaryButtonTextColor || styling.textColor || '#353535',
+                    }}
+                  >
+                    {/* Clean corner dots */}
+                    <span className="absolute top-3 left-4 w-2 h-2 rounded-full" style={{ backgroundColor: props.secondaryButtonTextColor || styling.textColor || '#353535' }} />
+                    <span className="absolute top-3 right-4 w-2 h-2 rounded-full" style={{ backgroundColor: props.secondaryButtonTextColor || styling.textColor || '#353535' }} />
+                    <span className="absolute bottom-3 left-4 w-2 h-2 rounded-full" style={{ backgroundColor: props.secondaryButtonTextColor || styling.textColor || '#353535' }} />
+                    <span className="absolute bottom-3 right-4 w-2 h-2 rounded-full" style={{ backgroundColor: props.secondaryButtonTextColor || styling.textColor || '#353535' }} />
+                    {props.secondaryButtonText || 'Garage Store'}
+                  </button>
                 )}
               </div>
-            </div>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
-// ATOMIC TV BANNER
-function AtomicTVBannerBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
-  const { title, subtitle, description, features, buttonText, buttonLink } = block.props
-
-  const content = (
-    <div className="flex flex-col md:flex-row items-center">
-      {/* Left - Icon & Branding */}
-      <div className="bg-[#FF6B35] p-6 md:p-8 flex items-center gap-4 w-full md:w-auto shrink-0">
-        <div className="w-16 h-16 bg-white flex items-center justify-center">
-          <Tv className="w-8 h-8 text-[#FF6B35]" />
-        </div>
-        <div>
-          <h2 
-            className="text-3xl md:text-4xl font-black uppercase tracking-tight text-white"
-            style={{ fontFamily: "var(--font-oswald), sans-serif" }}
-          >
-            {title}
-          </h2>
-          <p className="text-white/80 text-xs uppercase tracking-widest">
-            {subtitle}
-          </p>
-        </div>
-      </div>
-      
-      {/* Middle - Description & Features */}
-      <div className="flex-grow p-6 md:p-8 flex flex-col md:flex-row items-center gap-6">
-        <p className="text-white/70 text-sm md:text-base max-w-md text-center md:text-left">
-          {description}
-        </p>
-        
-        {/* Feature Pills */}
-        <div className="flex flex-wrap justify-center md:justify-start gap-2">
-          {(features || []).map((item: any, i: number) => (
-            <span 
-              key={i}
-              className="flex items-center gap-1 bg-white/10 px-3 py-1 text-white text-xs font-bold uppercase border border-white/20"
-            >
-              {item.icon} {item.label}
-            </span>
-          ))}
-        </div>
-      </div>
-      
-      {/* Right - CTA */}
-      <div className="bg-[#1f1c13] p-6 md:p-8 w-full md:w-auto shrink-0 flex justify-center">
-        <div className="flex items-center gap-3 bg-[#FF6B35] group-hover:bg-[#CCAA4C] text-white group-hover:text-[#353535] px-8 py-4 font-black uppercase text-sm tracking-widest transition-all">
-          <Play className="w-5 h-5 fill-current" />
-          {buttonText}
-          <Radio className="w-4 h-4 animate-pulse" />
-        </div>
-      </div>
-    </div>
-  )
-
-  return (
-    <section className="bg-[#353535] border-y-4 border-[#FF6B35]">
-      <div className="max-w-[1400px] mx-auto">
-        {isEditing ? (
-          <div className="block group">{content}</div>
-        ) : (
-          <Link href={buttonLink || '/tv'} className="block group">{content}</Link>
-        )}
-      </div>
-    </section>
-  )
-}
-
-// PROPAGANDA GRID - Uses FeaturedContent component for live data
-function PropagandaGridBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
-  const { heading, posters, columns, useDatabaseContent, maxItems } = block.props
-
-  // If using database content and not editing, render the dynamic component
-  if (useDatabaseContent && !isEditing) {
-    return (
-      <FeaturedContent
-        heading={heading || 'Featured Propaganda'}
-        maxItems={maxItems || 3}
-        showHeading={true}
-      />
-    )
-  }
-
-  return (
-    <section className="max-w-[1200px] mx-auto px-6 py-16">
-      {/* Section Heading */}
-      <div className="flex items-center gap-6 mb-12">
-        <h2 
-          className="text-3xl md:text-4xl font-black uppercase tracking-tighter bg-[#353535] text-white px-6 py-2"
-          style={{ fontFamily: "var(--font-oswald), sans-serif" }}
-        >
-          {heading}
-        </h2>
-        <div className="flex-grow h-1 bg-[#353535]"></div>
-      </div>
-
-      {useDatabaseContent && isEditing ? (
-        <div className="border-2 border-dashed border-[#CCAA4C]/50 rounded-lg p-8 text-center">
-          <FileText className="w-12 h-12 mx-auto mb-4 text-[#CCAA4C]" />
-          <p className="text-[#353535] font-bold">Dynamic Content Enabled</p>
-          <p className="text-sm text-[#353535]/60">Will show {maxItems || 3} featured items from database</p>
-        </div>
-      ) : (
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${columns || 3} gap-10`}>
-          {(posters || []).map((poster: any) => (
-            <PosterCard 
-              key={poster.id}
-              poster={poster}
-              isEditing={isEditing}
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  )
-}
-
-function PosterCard({ poster, isEditing }: { poster: any; isEditing: boolean }) {
-  const content = (
-    <div className="industrial-border-sm relative overflow-hidden bg-[#CCAA4C] p-1">
-      <div className="bg-[#E3E2D5] p-6 h-full flex flex-col border-2 border-[#353535]">
-        {/* Report Number */}
-        <div className="absolute top-0 right-0 bg-[#353535] text-white px-3 py-1 text-xs font-bold uppercase z-10">
-          {poster.reportNumber}
-        </div>
-
-        {/* Image */}
-        <div className="w-full aspect-[4/5] bg-[#353535] mb-6 relative overflow-hidden">
-          {poster.imageUrl && (
-            <Image
-              src={poster.imageUrl}
-              alt={poster.title}
-              fill
-              className="object-cover opacity-80 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500"
-            />
-          )}
-          <div className="absolute inset-0 halftone-overlay"></div>
-        </div>
-
-        {/* Title */}
-        <h3 
-          className="text-2xl md:text-3xl font-black uppercase leading-none mb-2 text-[#353535]"
-          style={{ fontFamily: "var(--font-oswald), sans-serif" }}
-        >
-          {poster.title}
-        </h3>
-
-        {/* Description */}
-        <p className="text-sm font-bold text-[#353535]/70 uppercase mb-6 italic tracking-tight">
-          {poster.description}
-        </p>
-
-        {/* Button */}
-        <div className="mt-auto">
-          <span className="block w-full bg-[#353535] text-[#CCAA4C] py-3 font-bold uppercase tracking-widest text-center text-sm group-hover:bg-[#CCAA4C] group-hover:text-[#353535] transition-colors">
-            {poster.buttonText}
-          </span>
-        </div>
-      </div>
-    </div>
-  )
-
-  return isEditing ? (
-    <div className="block group">{content}</div>
-  ) : (
-    <Link href={poster.link || '#'} className="block group">{content}</Link>
-  )
-}
-
-// BLOKE SCIENCE SLIDER - Default facts if not provided
-const DEFAULT_BLOKE_SCIENCE_FACTS = [
-  { id: '1', title: 'The First V8 Engine', fact: 'The first V8 engine was patented in 1902 by Léon Levavasseur.' },
-  { id: '2', title: 'Burnout Physics', fact: 'A proper burnout can heat tyre rubber to over 200°C (392°F).' },
-  { id: '3', title: 'The 10mm Socket Curse', fact: 'The average mechanic loses 3-5 10mm sockets per year.' },
-  { id: '4', title: 'Shed Acoustics', fact: 'The optimal shed size for acoustic privacy is 4x3 metres.' },
-  { id: '5', title: 'Beer Fridge Efficiency', fact: 'A dedicated beer fridge reaches optimal temperature 23% faster.' },
-  { id: '6', title: 'Torque vs Horsepower', fact: 'Horsepower is how fast you hit the wall. Torque is how far you take the wall with you.' },
-  { id: '7', title: 'The WD-40 Principle', fact: 'If it moves and shouldn\'t: duct tape. If it doesn\'t move and should: WD-40.' },
-  { id: '8', title: 'Man Cave Temperature', fact: 'The ideal man cave temperature is 22°C - scientifically optimized since 1973.' },
-  { id: '9', title: 'Tool Organization', fact: 'Installing a pegboard reduces tool-hunting from 2.3 hours to 47 minutes per week.' },
-  { id: '10', title: 'Exhaust Note Science', fact: 'V8 exhaust notes between 80-120Hz trigger the same brain response as a perfect steak.' },
-]
-
-function BlokeScienceSliderBlock({ block }: { block: PageBlock }) {
-  const { heading, autoPlay, interval } = block.props
-  // Use default facts if none provided or less than 10
-  const facts = block.props.facts?.length >= 10 ? block.props.facts : DEFAULT_BLOKE_SCIENCE_FACTS
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isAutoPlaying, setIsAutoPlaying] = useState(autoPlay ?? true)
-
-  useEffect(() => {
-    if (!isAutoPlaying || !facts?.length) return
-    
-    const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % facts.length)
-    }, interval || 5000)
-
-    return () => clearInterval(timer)
-  }, [isAutoPlaying, facts?.length, interval])
-
-  const goToPrevious = () => {
-    setIsAutoPlaying(false)
-    setCurrentIndex((prev) => (prev - 1 + (facts?.length || 1)) % (facts?.length || 1))
-  }
-
-  const goToNext = () => {
-    setIsAutoPlaying(false)
-    setCurrentIndex((prev) => (prev + 1) % (facts?.length || 1))
-  }
-
-  const getVisibleIndices = () => {
-    if (!facts?.length) return []
-    const indices = []
-    for (let i = -1; i <= 1; i++) {
-      const index = (currentIndex + i + facts.length) % facts.length
-      indices.push(index)
-    }
-    return indices
-  }
-
-  return (
-    <section className="bg-[#353535] py-16 border-y-8 border-[#CCAA4C]">
-      <div className="max-w-[1400px] mx-auto px-6">
-        {/* Section Heading */}
-        <div className="flex items-center gap-6 mb-12">
-          <div className="flex-grow h-1 bg-[#CCAA4C]"></div>
-          <h2 
-            className="text-3xl md:text-4xl font-black uppercase tracking-tighter bg-[#CCAA4C] text-[#353535] px-6 py-2"
-            style={{ fontFamily: "var(--font-oswald), sans-serif" }}
-          >
-            {heading}
-          </h2>
-          <div className="flex-grow h-1 bg-[#CCAA4C]"></div>
-        </div>
-
-        {/* Slider */}
-        <div className="relative">
-          {/* Cards Container - with padding for buttons */}
-          <div className="flex justify-center items-center gap-6 py-4 px-20 md:px-24 overflow-hidden">
-            {getVisibleIndices().map((factIndex, position) => {
-              const fact = facts?.[factIndex]
-              if (!fact) return null
-              const isCenter = position === 1
-              
-              return (
-                <div
-                  key={factIndex}
-                  className={`
-                    industrial-border bg-[#E3E2D5] p-6 md:p-8 relative transition-all duration-500 ease-out
-                    ${isCenter ? 'scale-100 opacity-100 z-10' : 'scale-90 opacity-60 z-0'}
-                    w-full max-w-sm shrink-0
-                  `}
-                >
-                  <div className="absolute top-4 right-4 stamp text-xs">Did You Know?</div>
-                  <div className="absolute top-4 left-4 bg-[#FF6B35] text-white px-2 py-1 text-[10px] font-black">
-                    #{factIndex + 1}
-                  </div>
-                  <h3 
-                    className="text-xl md:text-2xl font-black uppercase mb-4 text-[#353535] pr-24 pt-6"
-                    style={{ fontFamily: "var(--font-oswald), sans-serif" }}
-                  >
-                    {fact.title}
-                  </h3>
-                  <p className="font-mono text-sm text-[#353535]/80 leading-relaxed">
-                    {fact.fact}
-                  </p>
-                </div>
-              )
-            })}
+            )}
           </div>
+        </div>
+      )
 
-          {/* Navigation Buttons - positioned at edges, outside cards */}
-          <button
-            onClick={goToPrevious}
-            className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 bg-[#CCAA4C] hover:bg-[#FF6B35] text-[#353535] hover:text-white flex items-center justify-center transition-colors shadow-lg"
-          >
-            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
-          </button>
-          
-          <button
-            onClick={goToNext}
-            className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 bg-[#CCAA4C] hover:bg-[#FF6B35] text-[#353535] hover:text-white flex items-center justify-center transition-colors shadow-lg"
-          >
-            <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
-          </button>
-
-          {/* Progress Dots */}
-          <div className="flex justify-center gap-2 mt-6">
-            {(facts || []).map((_: any, index: number) => (
-              <button
-                key={index}
-                onClick={() => {
-                  setIsAutoPlaying(false)
-                  setCurrentIndex(index)
+    // ============================================
+    // TEXT / CONTENT BLOCKS
+    // ============================================
+    case 'richText':
+      const textColor = styling.textColor || '#E8E7DA'
+      const accentColor = styling.accentColor || '#CCAA4C'
+      const hasTextBg = styling.backgroundGradient || styling.backgroundColor || styling.backgroundImage
+      
+      return (
+        <div 
+          className={`py-12 ${wrapperClass}`}
+          style={{ 
+            background: getBackground(styling),
+            backgroundImage: styling.backgroundImage ? `url(${styling.backgroundImage})` : undefined,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          <div className="max-w-4xl mx-auto px-6">
+            {props.heading && (
+              <h2 
+                className="text-3xl font-bold uppercase tracking-tight mb-6"
+                style={{ 
+                  fontFamily: 'var(--font-oswald), sans-serif',
+                  color: accentColor,
                 }}
-                className={`w-3 h-3 transition-all ${
-                  index === currentIndex 
-                    ? 'bg-[#CCAA4C] scale-125' 
-                    : 'bg-[#E3E2D5]/50 hover:bg-[#E3E2D5]'
-                }`}
+              >
+                {props.heading}
+              </h2>
+            )}
+            {/* Scoped styles for rich text content - headings use accent color */}
+            <style>{`
+              .rich-text-content h1 { font-size: 2.5em; font-weight: bold; margin: 0.5em 0; font-family: var(--font-oswald), sans-serif; color: ${accentColor}; text-transform: uppercase; }
+              .rich-text-content h2 { font-size: 2em; font-weight: bold; margin: 0.5em 0; font-family: var(--font-oswald), sans-serif; color: ${accentColor}; text-transform: uppercase; }
+              .rich-text-content h3 { font-size: 1.5em; font-weight: bold; margin: 0.5em 0; font-family: var(--font-oswald), sans-serif; color: ${accentColor}; text-transform: uppercase; }
+              .rich-text-content p { margin: 1em 0; line-height: 1.7; white-space: pre-line; }
+              .rich-text-content li { margin-left: 1.5em; list-style: disc; margin-bottom: 0.5em; }
+              .rich-text-content a { color: ${accentColor}; text-decoration: underline; }
+              .rich-text-content strong, .rich-text-content b { font-weight: bold; }
+              .rich-text-content em, .rich-text-content i { font-style: italic; }
+              .rich-text-content u { text-decoration: underline; }
+            `}</style>
+            <div 
+              className="rich-text-content max-w-none"
+              style={{ 
+                fontFamily: 'var(--font-space-grotesk), sans-serif',
+                color: textColor,
+                fontSize: '1.125rem',
+                whiteSpace: 'pre-line', // Preserve line breaks
+              }}
+              dangerouslySetInnerHTML={{ __html: (props.body || '<p>Enter your content here...</p>').replace(/\n/g, '<br />') }}
+            />
+          </div>
+        </div>
+      )
+
+    case 'ctaStrip':
+      return (
+        <div 
+          className={`py-8 ${wrapperClass}`}
+          style={{ background: getBackground(styling, '#C9A227') }}
+        >
+          <div className="max-w-4xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <h3 
+                className="text-2xl md:text-3xl font-bold uppercase tracking-tight"
+                style={{ 
+                  fontFamily: 'var(--font-oswald), sans-serif',
+                  color: '#353535', 
+                }}
+              >
+                {props.headline || 'TAKE ACTION NOW'}
+              </h3>
+              {props.subtext && (
+                <p 
+                  className="text-[#353535]/80 font-medium uppercase tracking-wider text-sm"
+                  style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                >
+                  {props.subtext}
+                </p>
+              )}
+            </div>
+            <button 
+              className="relative px-8 py-4 font-bold uppercase tracking-widest text-sm border-4"
+              style={{ 
+                fontFamily: 'var(--font-oswald), sans-serif',
+                backgroundColor: '#353535',
+                borderColor: '#1a1a1a',
+                color: '#E3E2D5',
+                boxShadow: '4px 4px 0 rgba(0,0,0,0.2)',
+              }}
+            >
+              {props.buttonText || 'Learn More'}
+            </button>
+          </div>
+        </div>
+      )
+
+    // ============================================
+    // MEDIA BLOCKS
+    // ============================================
+    case 'poster':
+      return (
+        <div 
+          className={`py-12 ${wrapperClass}`}
+          style={{ background: getBackground(styling) }}
+        >
+        <div className="max-w-2xl mx-auto px-6">
+          <div 
+            className="relative aspect-[3/4] overflow-hidden"
+            style={{
+              backgroundColor: '#E3E2D5',
+              border: '8px solid #353535',
+              boxShadow: '12px 12px 0 rgba(0,0,0,0.3)',
+            }}
+          >
+            {/* Corner rivets */}
+            <span className="absolute top-4 left-4 w-4 h-4 rounded-full bg-[#8B7355] border-2 border-[#353535] z-10" />
+            <span className="absolute top-4 right-4 w-4 h-4 rounded-full bg-[#8B7355] border-2 border-[#353535] z-10" />
+            <span className="absolute bottom-4 left-4 w-4 h-4 rounded-full bg-[#8B7355] border-2 border-[#353535] z-10" />
+            <span className="absolute bottom-4 right-4 w-4 h-4 rounded-full bg-[#8B7355] border-2 border-[#353535] z-10" />
+            
+            {props.imageUrl ? (
+              <img 
+                src={props.imageUrl} 
+                alt={props.caption || 'Poster'} 
+                className="w-full h-full object-cover"
               />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center">
+                <span className="text-6xl mb-4">🖼️</span>
+                <span 
+                  className="text-2xl font-black uppercase tracking-tight"
+                  style={{ color: '#353535', fontStyle: 'italic' }}
+                >
+                  PROPAGANDA POSTER
+                </span>
+                <span className="text-sm text-[#353535]/60 mt-2 uppercase tracking-widest">
+                  Add your image
+                </span>
+              </div>
+            )}
+            {props.caption && (
+              <div 
+                className="absolute bottom-0 left-0 right-0 p-4"
+                style={{ backgroundColor: '#353535' }}
+              >
+                <p 
+                  className="text-center font-bold uppercase tracking-widest text-sm"
+                  style={{ color: '#E3E2D5' }}
+                >
+                  {props.caption}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+        </div>
+      )
+
+    // ============================================
+    // SIMPLE IMAGE - with scale and caption
+    // ============================================
+    case 'simpleImage':
+      const imgScale = props.scale ?? 100
+      const imgAlignment = props.alignment || 'center'
+      const alignmentClass = imgAlignment === 'left' ? 'mr-auto' : imgAlignment === 'right' ? 'ml-auto' : 'mx-auto'
+      const maxWidthClass = props.maxWidth === 'small' ? 'max-w-md' : props.maxWidth === 'medium' ? 'max-w-2xl' : props.maxWidth === 'large' ? 'max-w-4xl' : 'max-w-full'
+      
+      return (
+        <div 
+          className={`py-8 ${wrapperClass}`}
+          style={{ background: getBackground(styling, 'transparent') }}
+        >
+          <div className={`px-6 ${maxWidthClass} ${alignmentClass}`}>
+            <div 
+              className={`${alignmentClass}`}
+              style={{ width: `${imgScale}%` }}
+            >
+              {props.imageUrl ? (
+                <img 
+                  src={props.imageUrl} 
+                  alt={props.alt || 'Image'} 
+                  className="w-full h-auto"
+                  style={{ 
+                    borderRadius: block.variant === 'rounded' ? '12px' : block.variant === 'framed' ? '0' : '0',
+                    border: block.variant === 'framed' ? '4px solid #353535' : 'none',
+                    boxShadow: block.variant === 'framed' ? '8px 8px 0 rgba(0,0,0,0.2)' : 'none',
+                  }}
+                />
+              ) : (
+                <div 
+                  className="w-full aspect-video flex flex-col items-center justify-center bg-[#353535]/10 border-2 border-dashed border-[#353535]/30 rounded"
+                >
+                  <span className="text-4xl mb-2">🖼️</span>
+                  <span className="text-sm text-[#353535]/60 uppercase tracking-widest">
+                    Add Image
+                  </span>
+                </div>
+              )}
+              {/* Caption */}
+              {props.showCaption && props.caption && (
+                <p 
+                  className={`mt-3 text-sm italic ${imgAlignment === 'center' ? 'text-center' : imgAlignment === 'right' ? 'text-right' : 'text-left'}`}
+                  style={{ 
+                    color: styling.textColor || '#666',
+                    fontFamily: 'var(--font-space-grotesk), sans-serif',
+                  }}
+                >
+                  {props.caption}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )
+
+    case 'video':
+      // Support multiple sources for video URL
+      const vidUrl = props.videoUrl || props.videos?.[0]?.url || styling.backgroundVideo || ''
+      const isYouTube = vidUrl.includes('youtube.com') || vidUrl.includes('youtu.be')
+      const isVimeo = vidUrl.includes('vimeo.com')
+      
+      // Convert YouTube/Vimeo URLs to embed format
+      const getEmbedUrl = (url: string) => {
+        if (url.includes('youtube.com/watch')) {
+          const videoId = url.split('v=')[1]?.split('&')[0]
+          return `https://www.youtube.com/embed/${videoId}?autoplay=0`
+        }
+        if (url.includes('youtu.be/')) {
+          const videoId = url.split('youtu.be/')[1]?.split('?')[0]
+          return `https://www.youtube.com/embed/${videoId}?autoplay=0`
+        }
+        if (url.includes('vimeo.com/')) {
+          const videoId = url.split('vimeo.com/')[1]?.split('?')[0]
+          return `https://player.vimeo.com/video/${videoId}`
+        }
+        return url
+      }
+      
+      return (
+        <div 
+          className={`py-12 ${wrapperClass}`}
+          style={{ background: getBackground(styling) }}
+        >
+          <div className="max-w-4xl mx-auto px-6">
+          <div className="relative aspect-video bg-[#1a1a1a] border-4 border-[#353535] overflow-hidden">
+            {vidUrl ? (
+              isYouTube || isVimeo ? (
+                <iframe
+                  src={getEmbedUrl(vidUrl)}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video 
+                  src={vidUrl}
+                  className="w-full h-full object-cover"
+                  controls
+                  autoPlay={!isEditing}
+                  muted
+                  loop
+                  playsInline
+                />
+              )
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-[#CCAA4C] flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl">▶</span>
+                  </div>
+                  <span className="text-[#666] font-bold uppercase">Add Video URL</span>
+                </div>
+              </div>
+            )}
+          </div>
+          {props.caption && (
+            <p className="mt-4 text-center text-[#888] text-sm">{props.caption}</p>
+          )}
+          </div>
+        </div>
+      )
+
+    // ============================================
+    // TICKER BAR - Industrial News Strip
+    // ============================================
+    case 'tickerBar':
+      // Icon mapping for text codes to emoji
+      const iconMap: Record<string, string> = {
+        'bolt': '⚡',
+        'warning': '⚠️',
+        'construction': '🔧',
+        'gaming': '🎮',
+        'radio': '📻',
+        'fire': '🔥',
+        'trophy': '🏆',
+        'cart': '🛒',
+      }
+      const getIcon = (icon: string) => iconMap[icon] || icon
+      
+      const tickerItems = props.items || [
+        { icon: '⚡', text: 'BREAKING NEWS', highlight: true },
+        { icon: '⚠️', text: 'SHED ALERT', highlight: false },
+        { icon: '🔧', text: 'UNDER CONSTRUCTION', highlight: false },
+        { icon: '📻', text: 'NOW BROADCASTING', highlight: true },
+      ]
+      
+      // Duplicate items for seamless loop (only on live site, not in editor)
+      const allTickerItems = isEditing ? tickerItems : [...tickerItems, ...tickerItems]
+      
+      return (
+        <div 
+          className={`py-3 overflow-hidden ${wrapperClass}`}
+          style={{ 
+            background: getBackground(styling, '#C9A227'),
+            borderTop: `3px solid ${styling.accentColor || '#8B7355'}`,
+            borderBottom: `3px solid ${styling.accentColor || '#8B7355'}`,
+          }}
+        >
+          <div 
+            className={`flex items-center gap-12 whitespace-nowrap ${!isEditing ? 'animate-marquee' : ''}`}
+            style={!isEditing ? { width: '200%' } : undefined}
+          >
+            {allTickerItems.map((item: any, i: number) => (
+              <span 
+                key={i} 
+                className="font-black uppercase tracking-widest text-sm flex items-center gap-2"
+                style={{ 
+                  fontFamily: 'var(--font-oswald), sans-serif',
+                  color: item.highlight ? '#8B0000' : '#353535',
+                  fontStyle: 'italic',
+                }}
+              >
+                <span>{getIcon(item.icon)}</span>
+                {item.text}
+                <span className="mx-4">★</span>
+              </span>
             ))}
           </div>
         </div>
-      </div>
-    </section>
-  )
-}
+      )
 
-// BROADCAST LIST - Uses LatestBroadcasts component for live data
-function BroadcastListBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
-  const { heading, headingVariant, broadcasts, showViewAllButton, viewAllLink, viewAllText, useDatabaseContent, maxItems, variant } = block.props
-
-  // If using database content and not editing, render the dynamic component
-  if (useDatabaseContent && !isEditing) {
-    return (
-      <LatestBroadcasts
-        heading={heading}
-        headingVariant={headingVariant}
-        maxItems={maxItems || 5}
-        showViewAllButton={showViewAllButton}
-        viewAllLink={viewAllLink}
-        viewAllText={viewAllText}
-        variant={variant || 'list'}
-      />
-    )
-  }
-
-  // Static/editing mode - show manual broadcasts
-  return (
-    <section className="max-w-[1200px] mx-auto px-6 py-16">
-      {/* Section Heading */}
-      <div className={`flex items-center gap-6 mb-12 ${headingVariant === 'right' ? 'flex-row-reverse' : ''}`}>
-        <h2 
-          className="text-3xl md:text-4xl font-black uppercase tracking-tighter bg-[#353535] text-white px-6 py-2"
-          style={{ fontFamily: "var(--font-oswald), sans-serif" }}
+    // ============================================
+    // FEATURE MODULE GRID - MATCHING HOMEPAGE EXACTLY
+    // ============================================
+    case 'featureModuleGrid':
+      const defaultModules = [
+        { 
+          type: 'game', 
+          title: 'Man Cave Commander', 
+          badge: 'Free to Play',
+          subtitle: '🎮 Build • Customize • Dominate', 
+          description: 'Build your ultimate man cave in 3D! Choose your room, place furniture, work on projects, and compete for the highest Atomic Rating.',
+          accentColor: 'orange',
+          features: [{ icon: '🏠', label: '4 Room Sizes' }, { icon: '🛋️', label: '50+ Items' }, { icon: '🕹️', label: 'Mini-Games' }, { icon: '🏆', label: 'Leaderboards' }],
+          buttonText: 'Play Now',
+          buttonSubtext: "— It's Free!",
+        },
+        { 
+          type: 'store', 
+          title: 'Garage Store', 
+          badge: 'New Drops',
+          subtitle: '🏷️ Merch • Gear • Essentials', 
+          description: 'Rep the brand with official Atomic Tawk merch. Tees, caps, stickers, posters, and gear for the mechanically inclined.',
+          accentColor: 'gold',
+          features: [{ icon: '👕', label: 'Apparel' }, { icon: '🧢', label: 'Caps' }, { icon: '🖼️', label: 'Posters' }, { icon: '🔧', label: 'Gear' }],
+          buttonText: 'Shop Now',
+        },
+        { 
+          type: 'community', 
+          title: 'The Community', 
+          badge: 'Join Us',
+          subtitle: '💬 Share • Connect • Whinge', 
+          description: 'Join the conversation with fellow blokes. Share tips, get advice, show off your man cave, and have a proper whinge.',
+          accentColor: 'green',
+          features: [{ icon: '💡', label: 'Tips' }, { icon: '📸', label: 'Gallery' }, { icon: '🔧', label: 'Advice' }, { icon: '😤', label: 'Whinge' }],
+          buttonText: 'Join Community',
+        },
+      ]
+      const modules = props.modules || defaultModules
+      
+      return (
+        <div 
+          className={`py-12 ${wrapperClass}`}
+          style={{ background: getBackground(styling) }}
         >
-          {heading}
-        </h2>
-        <div className="flex-grow h-1 bg-[#353535]"></div>
-      </div>
-
-      {useDatabaseContent && isEditing ? (
-        <div className="border-2 border-dashed border-[#CCAA4C]/50 rounded-lg p-8 text-center">
-          <Radio className="w-12 h-12 mx-auto mb-4 text-[#CCAA4C]" />
-          <p className="text-[#353535] font-bold">Dynamic Content Enabled</p>
-          <p className="text-sm text-[#353535]/60">Will show {maxItems || 5} latest broadcasts from database</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {(broadcasts || []).map((item: any) => {
-            const content = (
-              <div className="flex flex-col md:flex-row items-center border-4 border-[#353535] bg-white group hover:border-[#CCAA4C] transition-colors">
-                <div className="w-full md:w-48 aspect-video md:aspect-square bg-[#353535] shrink-0 relative overflow-hidden">
-                  {item.thumbnailUrl ? (
-                    <Image
-                      src={item.thumbnailUrl}
-                      alt={item.title}
-                      fill
-                      className="object-cover grayscale group-hover:grayscale-0 transition-all"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[#CCAA4C]">
-                      <Radio className="w-12 h-12" />
-                    </div>
-                  )}
-                </div>
-                <div className="p-6 flex-grow flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
-                  <div>
-                    <div className="text-xs font-bold text-[#CCAA4C] uppercase mb-1">
-                      Entry: {item.date}
-                    </div>
-                    <h4 
-                      className="text-xl md:text-2xl font-black uppercase group-hover:text-[#CCAA4C] transition-colors"
-                      style={{ fontFamily: "var(--font-oswald), sans-serif" }}
+          <div className="max-w-[1400px] mx-auto px-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {modules.map((mod: any, i: number) => {
+                const colors: Record<string, { accent: string, secondary: string }> = {
+                  orange: { accent: '#FF6B35', secondary: '#CCAA4C' },
+                  gold: { accent: '#CCAA4C', secondary: '#FF6B35' },
+                  green: { accent: '#39FF14', secondary: '#CCAA4C' },
+                }
+                const color = colors[mod.accentColor] || colors.gold
+                
+                return (
+                  <div 
+                    key={i} 
+                    className="relative overflow-hidden border-4"
+                    style={{ 
+                      background: 'linear-gradient(to bottom right, #353535, #1f1c13)',
+                      borderColor: color.accent,
+                    }}
+                  >
+                    {/* Corner badge */}
+                    <div 
+                      className="absolute top-0 right-0 px-4 py-1"
+                      style={{ backgroundColor: color.accent }}
                     >
-                      {item.title}
-                    </h4>
-                    {item.description && (
-                      <p className="text-sm text-[#353535]/70 mt-1 line-clamp-1">{item.description}</p>
-                    )}
+                      <span 
+                        className="text-xs font-black uppercase tracking-widest"
+                        style={{ color: mod.accentColor === 'orange' ? 'white' : '#353535' }}
+                      >
+                        {mod.badge || 'New'}
+                      </span>
+                    </div>
+                    
+                    {/* Background decorative icons - using Lucide like homepage */}
+                    <div className="absolute inset-0 opacity-10 overflow-hidden">
+                      <div className="absolute top-4 left-4" style={{ color: color.accent }}>
+                        {mod.type === 'game' ? (
+                          <Gamepad2 className="w-32 h-32" />
+                        ) : mod.type === 'store' ? (
+                          <ShoppingBag className="w-28 h-28" />
+                        ) : (
+                          <Users className="w-28 h-28" />
+                        )}
+                      </div>
+                      <div className="absolute bottom-4 right-4 rotate-12" style={{ color: color.secondary }}>
+                        {mod.type === 'game' ? (
+                          <Trophy className="w-24 h-24" />
+                        ) : mod.type === 'store' ? (
+                          <Tag className="w-24 h-24" />
+                        ) : (
+                          <Camera className="w-24 h-24" />
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="relative p-8">
+                      {/* Icon box - using Lucide icons like homepage */}
+                      <div 
+                        className="w-20 h-20 flex items-center justify-center mb-6 border-4"
+                        style={{ 
+                          backgroundColor: color.accent, 
+                          borderColor: color.secondary,
+                        }}
+                      >
+                        {mod.type === 'game' ? (
+                          <Gamepad2 className="w-10 h-10 text-white" />
+                        ) : mod.type === 'store' ? (
+                          <ShoppingBag className="w-10 h-10 text-[#353535]" />
+                        ) : (
+                          <MessageSquare className="w-10 h-10 text-[#353535]" />
+                        )}
+                      </div>
+                      
+                      {/* Title */}
+                      <h3 
+                        className="text-3xl md:text-4xl font-black uppercase tracking-tight text-white mb-2"
+                        style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                      >
+                        {mod.title}
+                      </h3>
+                      
+                      {/* Subtitle with emoji */}
+                      <p 
+                        className="font-bold uppercase text-sm tracking-widest mb-4"
+                        style={{ color: color.accent }}
+                      >
+                        {mod.subtitle}
+                      </p>
+                      
+                      {/* Description */}
+                      <p className="text-white/70 text-sm mb-6 max-w-md">
+                        {mod.description}
+                      </p>
+                      
+                      {/* Feature pills */}
+                      <div className="flex flex-wrap gap-3 mb-6">
+                        {(mod.features || []).map((feature: any, fi: number) => (
+                          <div 
+                            key={fi}
+                            className="flex items-center gap-2 bg-white/10 px-3 py-1 border border-white/20"
+                          >
+                            <span>{feature.icon}</span>
+                            <span className="text-white text-xs font-bold uppercase">{feature.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* CTA Button - using Lucide icons like homepage */}
+                      <button 
+                        className="group flex items-center gap-3 px-8 py-4 font-black uppercase text-sm tracking-widest transition-all border-2"
+                        style={{ 
+                          backgroundColor: color.accent,
+                          borderColor: color.accent,
+                          color: mod.accentColor === 'orange' ? 'white' : '#353535',
+                        }}
+                      >
+                        {mod.type === 'game' ? (
+                          <Zap className="w-5 h-5" />
+                        ) : mod.type === 'store' ? (
+                          <ShoppingBag className="w-5 h-5" />
+                        ) : (
+                          <Users className="w-5 h-5" />
+                        )}
+                        {mod.buttonText || 'Enter'}
+                        {mod.buttonSubtext ? (
+                          <span className="text-xs opacity-70">{mod.buttonSubtext}</span>
+                        ) : mod.type !== 'game' && (
+                          <Star className="w-4 h-4 opacity-70" />
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-4 text-[#353535]/50">
-                    <Headphones className="w-5 h-5 hover:text-[#CCAA4C] cursor-pointer" />
-                    <Share2 className="w-5 h-5 hover:text-[#CCAA4C] cursor-pointer" />
-                    <Heart className="w-5 h-5 hover:text-[#CCAA4C] cursor-pointer" />
-                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )
+
+    // ============================================
+    // ATOMIC TV BANNER - MATCHING HOMEPAGE EXACTLY
+    // ============================================
+    case 'atomicTVBanner':
+      return (
+        <div 
+          className={`border-y-4 ${wrapperClass}`}
+          style={{ 
+            background: getBackground(styling, '#353535'), 
+            borderColor: styling.accentColor || '#FF6B35',
+          }}
+        >
+          <div className="max-w-[1400px] mx-auto">
+            <div className="flex flex-col md:flex-row items-center">
+              {/* Left - Icon & Branding */}
+              <div 
+                className="p-6 md:p-8 flex items-center gap-4 w-full md:w-auto shrink-0"
+                style={{ backgroundColor: '#FF6B35' }}
+              >
+                <div className="w-16 h-16 bg-white flex items-center justify-center">
+                  <span className="text-3xl">📺</span>
+                </div>
+                <div>
+                  <h2 
+                    className="text-3xl md:text-4xl font-black uppercase tracking-tight text-white"
+                    style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                  >
+                    {props.title || 'Atomic TV'}
+                  </h2>
+                  <p className="text-white/80 text-xs uppercase tracking-widest">
+                    {props.subtitle || 'Official Broadcast Network'}
+                  </p>
                 </div>
               </div>
-            )
-
-            return isEditing ? (
-              <div key={item.id}>{content}</div>
-            ) : (
-              <Link href={item.link || '/shows'} key={item.id}>{content}</Link>
-            )
-          })}
-        </div>
-      )}
-
-      {/* View All Button */}
-      {showViewAllButton && (
-        <div className="text-center mt-12">
-          {isEditing ? (
-            <span className="inline-block px-8 py-4 bg-[#E3E2D5] text-[#353535] font-bold uppercase tracking-widest border-4 border-[#353535]">
-              {viewAllText}
-            </span>
-          ) : (
-            <Link href={viewAllLink || '/shows'} className="inline-block px-8 py-4 bg-[#E3E2D5] text-[#353535] font-bold uppercase tracking-widest border-4 border-[#353535] hover:bg-[#353535] hover:text-white transition-colors">
-              {viewAllText}
-            </Link>
-          )}
-        </div>
-      )}
-    </section>
-  )
-}
-
-// CATEGORY ICON GRID
-function CategoryIconGridBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
-  const { categories } = block.props
-
-  return (
-    <section className="bg-[#1f1c13] py-16 border-t-8 border-[#CCAA4C]">
-      <div className="max-w-[1200px] mx-auto px-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-          {(categories || []).map((cat: any) => {
-            const content = (
-              <div className="bg-[#1f1c13] p-6 text-center hover:scale-105 transition-all group">
-                <div className="w-32 h-32 mx-auto mb-4">
-                  {cat.imageUrl ? (
-                    <img 
-                      src={cat.imageUrl} 
-                      alt={cat.label} 
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-[#353535] flex items-center justify-center text-[#CCAA4C]">
-                      <Star className="w-12 h-12" />
-                    </div>
-                  )}
+              
+              {/* Middle - Description & Features */}
+              <div className="flex-grow p-6 md:p-8 flex flex-col md:flex-row items-center gap-6">
+                <p className="text-white/70 text-sm md:text-base max-w-md text-center md:text-left">
+                  {props.description || 'Burnouts, shed builds, gaming sessions, and mechanical mayhem. Watch the latest episodes and live broadcasts.'}
+                </p>
+                
+                {/* Feature Pills */}
+                <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                  {(props.categories || [
+                    { icon: '🔥', label: 'Burnouts' },
+                    { icon: '🔧', label: 'Builds' },
+                    { icon: '🎮', label: 'Gaming' },
+                    { icon: '📺', label: 'Live' },
+                  ]).map((item: any, idx: number) => (
+                    <span 
+                      key={idx}
+                      className="flex items-center gap-1 bg-white/10 px-3 py-1 text-white text-xs font-bold uppercase border border-white/20"
+                    >
+                      {item.icon} {item.label}
+                    </span>
+                  ))}
                 </div>
-                <span 
-                  className="text-[#CCAA4C] text-lg font-black uppercase tracking-tight"
-                  style={{ fontFamily: "var(--font-oswald), sans-serif" }}
+              </div>
+              
+              {/* Right - CTA */}
+              <div 
+                className="p-6 md:p-8 w-full md:w-auto shrink-0"
+                style={{ backgroundColor: '#252525' }}
+              >
+                <button 
+                  className="w-full flex items-center justify-center gap-3 px-8 py-4 font-black uppercase text-sm tracking-widest transition-all border-2"
+                  style={{ 
+                    backgroundColor: '#FF6B35',
+                    borderColor: '#FF6B35',
+                    color: 'white',
+                  }}
                 >
-                  {cat.label}
+                  ▶ Watch Now
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+
+    // ============================================
+    // PROPAGANDA GRID (Featured Content) - Industrial Style
+    // ============================================
+    case 'propagandaGrid':
+      const propBg = getBackground(styling, '#E3E2D5')
+      const propBlockId = `propaganda-${block.id}`
+      
+      return (
+        <div 
+          id={propBlockId}
+          className={wrapperClass}
+          style={{ 
+            padding: '64px 24px',
+            minHeight: '300px',
+            backgroundColor: propBg,
+            background: propBg,
+          }}
+        >
+            <div style={{ maxWidth: '1200px', marginLeft: 'auto', marginRight: 'auto' }}>
+              {/* Heading - matching FeaturedContent style */}
+              <div className="flex items-center gap-6 mb-12">
+                <h2 
+                  className="text-3xl md:text-4xl font-black uppercase tracking-tighter bg-[#353535] text-white px-6 py-2"
+                  style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                >
+                  {props.heading || 'Featured Propaganda'}
+                </h2>
+                <div className="flex-grow h-1 bg-[#353535]" />
+              </div>
+              
+              {/* Cards grid - matching PosterCard style from FeaturedContent */}
+              <div className={`grid gap-10 items-stretch ${
+                props.columns === 2 ? 'grid-cols-1 md:grid-cols-2' :
+                props.columns === 4 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' :
+                'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+              }`}>
+                {Array.from({ length: props.maxItems || 3 }).map((_, i) => (
+                  <div 
+                    key={i} 
+                    className="relative h-full flex flex-col bg-[#E3E2D5] p-4 border-4 border-[#353535]"
+                    style={{ boxShadow: '8px 8px 0 #CCAA4C' }}
+                  >
+                    {/* Report Number Badge */}
+                    <div className="absolute top-0 right-0 z-20 bg-[#353535] text-[#E3E2D5] text-[10px] font-bold uppercase tracking-widest px-3 py-1">
+                      Report #{String(i + 1).padStart(3, '0')}
+                    </div>
+                    
+                    {/* Image Container with Gold Corner Accents */}
+                    <div className="relative mb-4">
+                      {/* Corner accents - gold */}
+                      <div className="absolute -top-1 -left-1 w-6 h-6 border-l-4 border-t-4 border-[#CCAA4C] z-10" />
+                      <div className="absolute -top-1 -right-1 w-6 h-6 border-r-4 border-t-4 border-[#CCAA4C] z-10" />
+                      <div className="absolute -bottom-1 -left-1 w-6 h-6 border-l-4 border-b-4 border-[#CCAA4C] z-10" />
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 border-r-4 border-b-4 border-[#CCAA4C] z-10" />
+                      
+                      {/* Image placeholder */}
+                      <div className="aspect-[4/5] relative overflow-hidden bg-[#353535] flex items-center justify-center">
+                        <span className="text-6xl text-[#CCAA4C] opacity-50">📰</span>
+                      </div>
+                    </div>
+                    
+                    {/* Title placeholder */}
+                    <h3 
+                      className="text-2xl font-black uppercase tracking-tight mb-2 text-[#353535]"
+                      style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                    >
+                      Article Title
+                    </h3>
+                    
+                    {/* Description placeholder */}
+                    <p className="text-sm italic text-[#353535]/70 mb-4 flex-grow">
+                      Article description placeholder...
+                    </p>
+                    
+                    {/* CTA Button */}
+                    <div className="bg-[#353535] text-[#CCAA4C] text-center py-3 font-bold uppercase tracking-widest text-sm mt-auto">
+                      View Report
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+        </div>
+      )
+
+    // ============================================
+    // BROADCAST LIST
+    // ============================================
+    case 'broadcastList':
+      const broadcastBg = getBackground(styling, '#E3E2D5')
+      
+      return (
+        <div 
+          className={`py-16 ${wrapperClass}`}
+          style={{
+            backgroundColor: broadcastBg,
+            background: broadcastBg,
+          }}
+        >
+            <div className="max-w-[1200px] mx-auto px-6">
+              {/* Heading - right-aligned style */}
+              <div className="flex items-center gap-6 mb-8 flex-row-reverse">
+                <h2 
+                  className="text-3xl md:text-4xl font-black uppercase tracking-tighter bg-[#353535] text-white px-6 py-2"
+                  style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                >
+                  {props.heading || 'Latest Broadcasts'}
+                </h2>
+                <div className="flex-grow h-1 bg-[#353535]" />
+              </div>
+              
+              {/* Broadcast items - matching LatestBroadcasts list style */}
+              <div className="space-y-3">
+                {Array.from({ length: props.maxItems || 5 }).map((_, i) => (
+                  <div 
+                    key={i} 
+                    className="flex gap-6 bg-white border-2 border-[#353535] p-4 hover:border-[#CCAA4C] transition-colors"
+                  >
+                    {/* Thumbnail */}
+                    <div className="w-40 h-24 bg-[#353535] flex-shrink-0 flex items-center justify-center">
+                      <span className="text-3xl text-[#CCAA4C]">📻</span>
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="flex-1 flex flex-col justify-center">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold uppercase text-[#CCAA4C]">Category</span>
+                        <span className="text-xs text-[#353535]/50">Jan 30, 2026</span>
+                      </div>
+                      <h4 
+                        className="text-lg font-black uppercase tracking-tight text-[#353535] mb-1"
+                        style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                      >
+                        Broadcast Title {i + 1}
+                      </h4>
+                      <p className="text-sm text-[#353535]/70">
+                        Brief description of the broadcast content...
+                      </p>
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex items-center gap-3 text-[#353535]/30">
+                      <span>💬</span>
+                      <span>📤</span>
+                      <span>❤️</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* View All button */}
+              <div className="mt-8 text-center">
+                <span className="inline-block bg-transparent border-2 border-[#353535] text-[#353535] px-6 py-3 font-bold uppercase tracking-widest text-sm hover:bg-[#353535] hover:text-white transition-colors cursor-pointer">
+                  Access Full Archive
                 </span>
               </div>
-            )
-
-            return isEditing ? (
-              <div key={cat.id}>{content}</div>
-            ) : (
-              <Link key={cat.id} href={cat.link || '#'}>{content}</Link>
-            )
-          })}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// BRAND STATEMENT
-function BrandStatementBlock({ block }: { block: PageBlock }) {
-  const { quote, subtitle } = block.props
-
-  return (
-    <section className="bg-[#CCAA4C] py-12 border-y-4 border-[#353535]">
-      <div className="max-w-[1200px] mx-auto px-6 text-center">
-        <p 
-          className="text-2xl md:text-3xl font-black uppercase tracking-tight text-[#353535]"
-          style={{ fontFamily: "var(--font-oswald), sans-serif" }}
-        >
-          {quote}
-        </p>
-        <p className="text-sm font-mono uppercase mt-4 text-[#353535]/70">
-          {subtitle}
-        </p>
-      </div>
-    </section>
-  )
-}
-
-// ============================================
-// GENERIC BLOCKS (existing)
-// ============================================
-
-function HeroBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
-  const { title, subtitle, backgroundImage, overlayOpacity, buttonText, buttonLink, alignment } = block.props
-  
-  // Get colors from styling or use defaults
-  const textColor = block.styling?.textColor || '#FFFFFF'
-  const accentColor = block.styling?.accentColor || '#CCAA4C'
-  const bgColor = block.styling?.backgroundColor || ''
-  const bgGradient = block.styling?.backgroundGradient || ''
-  
-  const alignmentClasses = {
-    left: 'text-left items-start',
-    center: 'text-center items-center',
-    right: 'text-right items-end',
-  }
-
-  // Build background style
-  const backgroundStyle: React.CSSProperties = {}
-  if (backgroundImage && !block.styling?.backgroundVideo) {
-    backgroundStyle.backgroundImage = `url(${backgroundImage})`
-    backgroundStyle.backgroundSize = 'cover'
-    backgroundStyle.backgroundPosition = 'center'
-  } else if (bgGradient) {
-    backgroundStyle.background = bgGradient
-  } else if (bgColor) {
-    backgroundStyle.backgroundColor = bgColor
-  }
-
-  const hasBackground = backgroundImage || bgColor || bgGradient || block.styling?.backgroundVideo
-
-  return (
-    <div 
-      className={`relative flex flex-col justify-center px-8 py-16 min-h-[400px] ${alignmentClasses[alignment as keyof typeof alignmentClasses] || alignmentClasses.center}`}
-      style={backgroundStyle}
-    >
-      {/* Overlay - only show if there's a background image/video */}
-      {(backgroundImage || block.styling?.backgroundVideo) && (
-        <div 
-          className="absolute inset-0 bg-black"
-          style={{ opacity: (overlayOpacity || 60) / 100 }}
-        />
-      )}
-      
-      <div className="relative z-10 max-w-4xl">
-        {title && (
-          <h1 
-            className="text-4xl md:text-6xl font-black uppercase tracking-tight mb-4"
-            style={{ fontFamily: 'var(--font-oswald), sans-serif', color: textColor }}
-          >
-            {title}
-          </h1>
-        )}
-        {subtitle && (
-          <p 
-            className="text-xl uppercase tracking-widest mb-8"
-            style={{ color: accentColor }}
-          >
-            {subtitle}
-          </p>
-        )}
-        {buttonText && (
-          isEditing ? (
-            <span 
-              className="inline-block px-8 py-3 font-bold uppercase tracking-wide"
-              style={{ backgroundColor: accentColor, color: bgColor || '#1a1a1a' }}
-            >
-              {buttonText}
-            </span>
-          ) : (
-            <Link 
-              href={buttonLink || '/'}
-              className="inline-block px-8 py-3 font-bold uppercase tracking-wide hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: accentColor, color: bgColor || '#1a1a1a' }}
-            >
-              {buttonText}
-            </Link>
-          )
-        )}
-      </div>
-
-      {/* Fallback gradient if no background set */}
-      {!hasBackground && (
-        <div className="absolute inset-0 bg-gradient-to-br from-[#353535] to-[#1a1a1a] -z-10" />
-      )}
-    </div>
-  )
-}
-
-function RichTextBlock({ block }: { block: PageBlock }) {
-  const { heading, headingSize, body, alignment } = block.props
-
-  // Get colors from styling
-  const textColor = block.styling?.textColor || '#AEACA1'
-  const accentColor = block.styling?.accentColor || '#CCAA4C'
-  const bgColor = block.styling?.backgroundColor || ''
-
-  const headingSizes = {
-    small: 'text-xl',
-    medium: 'text-2xl md:text-3xl',
-    large: 'text-3xl md:text-4xl',
-  }
-
-  const alignmentClasses = {
-    left: 'text-left',
-    center: 'text-center',
-    right: 'text-right',
-  }
-
-  // Check if body contains HTML
-  const isHTML = body && (body.includes('<') && body.includes('>'))
-
-  return (
-    <div 
-      className="px-8 py-12"
-      style={{ backgroundColor: bgColor || undefined }}
-    >
-      <div className={`max-w-4xl mx-auto ${alignmentClasses[alignment as keyof typeof alignmentClasses] || alignmentClasses.left}`}>
-        {heading && (
-          <h2 
-            className={`${headingSizes[headingSize as keyof typeof headingSizes] || headingSizes.medium} font-bold uppercase tracking-tight mb-6`}
-            style={{ fontFamily: 'var(--font-oswald), sans-serif', color: accentColor }}
-          >
-            {heading}
-          </h2>
-        )}
-        {body && (
-          isHTML ? (
-            <div 
-              className="rich-text-content leading-relaxed prose prose-invert max-w-none"
-              style={{ color: textColor }}
-              dangerouslySetInnerHTML={{ __html: body }}
-            />
-          ) : (
-            <div 
-              className="leading-relaxed whitespace-pre-wrap"
-              style={{ color: textColor }}
-            >
-              {body}
             </div>
-          )
-        )}
-      </div>
+        </div>
+      )
+
+    // ============================================
+    // CATEGORY ICON GRID
+    // ============================================
+    case 'categoryIconGrid':
+      // Match homepage default categories with images
+      const defaultCategories = [
+        { id: '1', imageUrl: '/images/categories/burnouts.png', label: 'Burnouts & Cars', link: '/shows/burnouts' },
+        { id: '2', imageUrl: '/images/categories/shed.png', label: 'The Shed', link: '/shows/shed' },
+        { id: '3', imageUrl: '/images/categories/gaming.png', label: 'Gaming', link: '/shows/gaming' },
+        { id: '4', imageUrl: '/images/categories/store.png', label: 'Garage Store', link: '/store' },
+        { id: '5', imageUrl: '/images/categories/weapons.png', label: 'Weapons', link: '/shows/weapons' },
+        { id: '6', imageUrl: '/images/categories/storage.png', label: 'Storage', link: '/shows/storage' },
+      ]
+      const categories = props.categories || defaultCategories
+      const catBg = getBackground(styling, '#1f1c13')
       
-      {/* Rich text content styles */}
-      <style jsx global>{`
-        .rich-text-content h1,
-        .rich-text-content h2,
-        .rich-text-content h3,
-        .rich-text-content h4 {
-          color: ${accentColor};
-          font-family: var(--font-oswald), sans-serif;
-          font-weight: 700;
-          text-transform: uppercase;
-          margin-top: 1.5em;
-          margin-bottom: 0.5em;
-        }
-        .rich-text-content h1 { font-size: 2.25em; }
-        .rich-text-content h2 { font-size: 1.75em; }
-        .rich-text-content h3 { font-size: 1.5em; }
-        .rich-text-content h4 { font-size: 1.25em; }
-        .rich-text-content p {
-          margin-bottom: 1em;
-        }
-        .rich-text-content a {
-          color: ${accentColor};
-          text-decoration: underline;
-        }
-        .rich-text-content a:hover {
-          opacity: 0.8;
-        }
-        .rich-text-content strong, 
-        .rich-text-content b {
-          font-weight: 700;
-        }
-        .rich-text-content em,
-        .rich-text-content i {
-          font-style: italic;
-        }
-        .rich-text-content ul,
-        .rich-text-content ol {
-          margin-left: 1.5em;
-          margin-bottom: 1em;
-        }
-        .rich-text-content ul {
-          list-style-type: disc;
-        }
-        .rich-text-content ol {
-          list-style-type: decimal;
-        }
-        .rich-text-content li {
-          margin-bottom: 0.5em;
-        }
-        .rich-text-content blockquote {
-          border-left: 4px solid ${accentColor};
-          padding-left: 1em;
-          margin: 1em 0;
-          font-style: italic;
-          opacity: 0.9;
-        }
-        .rich-text-content pre,
-        .rich-text-content code {
-          background: rgba(0,0,0,0.3);
-          border-radius: 4px;
-          padding: 0.2em 0.4em;
-          font-family: monospace;
-        }
-        .rich-text-content pre {
-          padding: 1em;
-          overflow-x: auto;
-        }
-        .rich-text-content img {
-          max-width: 100%;
-          border-radius: 4px;
-          margin: 1em 0;
-        }
-      `}</style>
-    </div>
-  )
-}
-
-function CTAStripBlock({ block }: { block: PageBlock }) {
-  const { text, buttonText } = block.props
-
-  const variantStyles = {
-    black: 'bg-[#1a1a1a] border-y-4 border-[#CCAA4C]',
-    gold: 'bg-[#CCAA4C]',
-    warning: 'bg-[#FF6B35]',
-  }
-
-  const textColors = {
-    black: 'text-white',
-    gold: 'text-[#1a1a1a]',
-    warning: 'text-white',
-  }
-
-  const buttonStyles = {
-    black: 'bg-[#CCAA4C] text-[#1a1a1a]',
-    gold: 'bg-[#1a1a1a] text-white',
-    warning: 'bg-[#1a1a1a] text-white',
-  }
-
-  return (
-    <div className={`px-8 py-8 ${variantStyles[block.variant as keyof typeof variantStyles] || variantStyles.gold}`}>
-      <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-        <p className={`text-xl font-bold uppercase tracking-wide ${textColors[block.variant as keyof typeof textColors] || textColors.gold}`}>
-          {text}
-        </p>
-        {buttonText && (
-          <span className={`px-6 py-2 font-bold uppercase tracking-wide ${buttonStyles[block.variant as keyof typeof buttonStyles] || buttonStyles.gold}`}>
-            {buttonText}
-          </span>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function PosterBlock({ block }: { block: PageBlock }) {
-  const { image, caption } = block.props
-
-  return (
-    <div className="px-8 py-12">
-      <div className="max-w-2xl mx-auto border-8 border-[#353535] shadow-2xl">
-        {image ? (
-          <img src={image} alt={caption || ''} className="w-full" />
-        ) : (
-          <div className="aspect-[3/4] bg-[#252525] flex items-center justify-center">
-            <p className="text-[#666]">No image set</p>
+      return (
+        <div 
+          className={`py-16 border-t-8 border-[#CCAA4C] ${wrapperClass}`}
+          style={{
+            backgroundColor: catBg,
+            background: catBg,
+          }}
+        >
+            <div className="max-w-[1200px] mx-auto px-6">
+              {/* Category grid - matching homepage 6-column layout (NO heading on actual homepage) */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+                {categories.map((cat: any, i: number) => (
+                  <div 
+                    key={cat.id || i} 
+                    className="bg-[#1f1c13] p-6 text-center hover:scale-105 transition-all group cursor-pointer"
+                  >
+                    <div className="w-32 h-32 mx-auto mb-4">
+                      {cat.imageUrl ? (
+                      <img 
+                        src={cat.imageUrl} 
+                        alt={cat.label} 
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-5xl opacity-50">
+                        {cat.icon || '📁'}
+                      </div>
+                    )}
+                  </div>
+                  <span 
+                    className="text-lg font-black uppercase tracking-tight text-[#CCAA4C]"
+                    style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                  >
+                    {cat.label}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-        )}
-        {caption && (
-          <p className="text-center text-[#CCAA4C] uppercase tracking-wider text-sm py-4 bg-[#1a1a1a]">
-            {caption}
-          </p>
-        )}
-      </div>
-    </div>
-  )
-}
+        </div>
+      )
 
-function VideoBlock({ block }: { block: PageBlock }) {
-  const { videos, layout } = block.props
-  const video = videos?.[0]
-
-  const getEmbedUrl = (url: string) => {
-    const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)
-    if (youtubeMatch) return `https://www.youtube.com/embed/${youtubeMatch[1]}`
-    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/)
-    if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`
-    return url
-  }
-
-  return (
-    <div className="px-8 py-12 max-w-3xl mx-auto">
-      {video?.url ? (
-        <div className="relative aspect-video bg-[#1a1a1a] border-4 border-[#353535]">
-          <iframe
-            src={getEmbedUrl(video.url)}
-            className="absolute inset-0 w-full h-full"
-            allowFullScreen
+    // ============================================
+    // BRAND STATEMENT - PSA Layout (matching homepage)
+    // ============================================
+    case 'brandStatement':
+      return (
+        <div 
+          className={`py-16 ${wrapperClass}`}
+          style={{ background: getBackground(styling, '#C9A227') }}
+        >
+          <div className="max-w-4xl mx-auto px-6 text-center">
+            {/* Quote marks around headline */}
+            <h2 
+              className="text-3xl md:text-5xl font-black italic uppercase tracking-tight mb-6"
+              style={{ 
+                fontFamily: 'var(--font-oswald), sans-serif',
+                color: '#353535',
+              }}
+            >
+              "{props.quote || props.headline || 'CIVIL DEFENCE PSA FOR HORSEPOWER'}"
+            </h2>
+            {/* Subtitle with bullet separator */}
+            <p 
+              className="text-sm md:text-base font-medium uppercase tracking-[0.3em] mb-8"
+              style={{ 
+                fontFamily: 'var(--font-oswald), sans-serif',
+                color: '#353535',
+              }}
+            >
+              {props.subtitle || props.subtext || 'BROADCASTING FROM THE SHED • APPROVED FOR MECHANICAL DISCUSSION'}
+            </p>
+          </div>
+          {/* Bottom border stripe */}
+          <div 
+            className="h-2 mt-8"
+            style={{ backgroundColor: '#353535' }}
           />
         </div>
-      ) : (
-        <div className="aspect-video bg-[#252525] flex items-center justify-center border-4 border-[#353535]">
-          <p className="text-[#666]">No video URL set</p>
-        </div>
-      )}
-    </div>
-  )
-}
+      )
 
-function DividerBlock({ block }: { block: PageBlock }) {
-  const { height } = block.props
-
-  const heightClasses = {
-    small: 'h-8',
-    medium: 'h-16',
-    large: 'h-24',
-  }
-
-  const variantStyles: Record<string, React.ReactNode> = {
-    atomic: <div className="h-1 bg-gradient-to-r from-transparent via-[#CCAA4C] to-transparent" />,
-    gear: (
-      <div className="h-2 flex items-center justify-center gap-2">
-        <div className="flex-1 h-px bg-[#353535]" />
-        <span className="text-[#CCAA4C]">⚙️</span>
-        <div className="flex-1 h-px bg-[#353535]" />
-      </div>
-    ),
-    radiation: <div className="h-4 hazard-stripe opacity-30" />,
-    simple: <div className="h-px bg-[#353535]" />,
-  }
-
-  return (
-    <div className={`px-8 flex items-center ${heightClasses[height as keyof typeof heightClasses] || heightClasses.medium}`}>
-      <div className="w-full">
-        {variantStyles[block.variant] || variantStyles.simple}
-      </div>
-    </div>
-  )
-}
-
-// BUTTON GROUP BLOCK
-function ButtonGroupBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
-  const { buttons, alignment, spacing, direction } = block.props
-
-  const alignmentClasses = {
-    left: 'justify-start',
-    center: 'justify-center',
-    right: 'justify-end',
-  }
-
-  const spacingClasses = {
-    tight: 'gap-2',
-    normal: 'gap-4',
-    wide: 'gap-6',
-  }
-
-  const directionClasses = {
-    horizontal: 'flex-row flex-wrap',
-    vertical: 'flex-col',
-  }
-
-  const getButtonClasses = (style: string, size: string) => {
-    const baseClasses = 'font-bold uppercase tracking-widest transition-all border-4'
-    
-    const sizeClasses = {
-      small: 'px-4 py-2 text-xs',
-      medium: 'px-6 py-3 text-sm',
-      large: 'px-8 py-4 text-base',
-    }
-
-    const styleClasses = {
-      primary: 'bg-[#CCAA4C] border-[#CCAA4C] text-[#1a1a1a] hover:bg-[#FF6B35] hover:border-[#FF6B35] hover:text-white',
-      secondary: 'bg-[#353535] border-[#353535] text-white hover:bg-[#CCAA4C] hover:border-[#CCAA4C] hover:text-[#1a1a1a]',
-      outline: 'bg-transparent border-[#CCAA4C] text-[#CCAA4C] hover:bg-[#CCAA4C] hover:text-[#1a1a1a]',
-      ghost: 'bg-transparent border-transparent text-[#CCAA4C] hover:bg-[#CCAA4C]/10',
-    }
-
-    return `${baseClasses} ${sizeClasses[size as keyof typeof sizeClasses] || sizeClasses.medium} ${styleClasses[style as keyof typeof styleClasses] || styleClasses.primary}`
-  }
-
-  // Pill variant adjustments
-  const pillClasses = block.variant === 'pill' ? 'rounded-full' : ''
-
-  return (
-    <div className="px-8 py-8">
-      <div className={`flex ${alignmentClasses[alignment as keyof typeof alignmentClasses] || alignmentClasses.center} ${spacingClasses[spacing as keyof typeof spacingClasses] || spacingClasses.normal} ${directionClasses[direction as keyof typeof directionClasses] || directionClasses.horizontal}`}>
-        {(buttons || []).map((btn: any) => {
-          const classes = `${getButtonClasses(btn.style, btn.size)} ${pillClasses}`
+    // ============================================
+    // IMAGE SLIDER
+    // ============================================
+    case 'imageSlider':
+      const slides = props.slides || [
+        { id: '1', imageUrl: '', title: 'Slide 1', subtitle: 'Add your first image', buttonText: '', buttonLink: '', overlay: true },
+        { id: '2', imageUrl: '', title: 'Slide 2', subtitle: 'Add your second image', buttonText: '', buttonLink: '', overlay: true },
+        { id: '3', imageUrl: '', title: 'Slide 3', subtitle: 'Add your third image', buttonText: '', buttonLink: '', overlay: true },
+      ]
+      const aspectRatioClass: Record<string, string> = {
+        '16:9': 'aspect-video',
+        '4:3': 'aspect-[4/3]',
+        '21:9': 'aspect-[21/9]',
+        '1:1': 'aspect-square',
+        '3:2': 'aspect-[3/2]',
+      }
+      const sliderHeight = props.height || 'auto'
+      const currentSlide = 0 // In preview, show first slide
+      
+      return (
+        <div 
+          className={`relative overflow-hidden ${wrapperClass}`}
+          style={{ 
+            background: getBackground(styling, '#1a1a1a'),
+            height: sliderHeight !== 'auto' ? sliderHeight : undefined,
+          }}
+        >
+          {/* Slides Container */}
+          <div 
+            className={`relative w-full ${sliderHeight === 'auto' ? aspectRatioClass[props.aspectRatio || '16:9'] : 'h-full'}`}
+          >
+            {slides.map((slide: any, i: number) => (
+              <div 
+                key={slide.id || i}
+                className={`absolute inset-0 transition-opacity duration-500 ${
+                  i === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                }`}
+              >
+                {/* Background Image */}
+                {slide.imageUrl ? (
+                  <img 
+                    src={slide.imageUrl} 
+                    alt={slide.title || `Slide ${i + 1}`}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#353535] to-[#1a1a1a] flex items-center justify-center">
+                    <div className="text-center text-white/30">
+                      <span className="text-6xl block mb-4">🖼️</span>
+                      <span className="text-sm uppercase tracking-widest">Add Image</span>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Overlay Gradient */}
+                {slide.overlay !== false && (slide.title || slide.subtitle || slide.buttonText) && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                )}
+                
+                {/* Text Overlay */}
+                {slide.overlay !== false && (slide.title || slide.subtitle || slide.buttonText) && (
+                  <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12">
+                    {slide.title && (
+                      <h2 
+                        className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white mb-2"
+                        style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                      >
+                        {slide.title}
+                      </h2>
+                    )}
+                    {slide.subtitle && (
+                      <p className="text-lg md:text-xl text-white/80 mb-4 max-w-2xl">
+                        {slide.subtitle}
+                      </p>
+                    )}
+                    {slide.buttonText && (
+                      <button 
+                        className="px-8 py-3 bg-[#CCAA4C] text-[#353535] font-bold uppercase tracking-wider text-sm hover:bg-[#FF6B35] hover:text-white transition-colors"
+                        style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                      >
+                        {slide.buttonText}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
           
-          return isEditing ? (
-            <span key={btn.id} className={classes}>
-              {btn.icon && <span className="mr-2">{btn.icon}</span>}
-              {btn.text}
-            </span>
-          ) : (
-            <Link key={btn.id} href={btn.link || '/'} className={classes}>
-              {btn.icon && <span className="mr-2">{btn.icon}</span>}
-              {btn.text}
-            </Link>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function CommunityFeedBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
-  const { feedType, maxItems } = block.props
-  const placeholderItems = Array.from({ length: maxItems || 6 }, (_, i) => ({ id: `placeholder_${i}`, title: `Upload ${i + 1}` }))
-
-  return (
-    <div className="px-8 py-12">
-      <h3 className="text-xl font-bold text-white uppercase tracking-tight mb-6 text-center">
-        Community {feedType === 'latest' ? 'Latest' : feedType === 'trending' ? 'Trending' : 'Featured'}
-      </h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {placeholderItems.map(item => (
-          <div key={item.id} className="aspect-square bg-[#252525] border-2 border-[#353535] flex items-center justify-center">
-            <span className="text-[#666] text-sm">{isEditing ? item.title : 'Loading...'}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function ProductEmbedBlock({ block, isEditing }: { block: PageBlock; isEditing: boolean }) {
-  const { maxItems } = block.props
-  const placeholderItems = Array.from({ length: maxItems || 4 }, (_, i) => ({ id: `product_${i}`, name: `Product ${i + 1}` }))
-
-  return (
-    <div className="px-8 py-12">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {placeholderItems.map(item => (
-          <div key={item.id} className="bg-[#252525] border-2 border-[#353535] p-4">
-            <div className="aspect-square bg-[#1a1a1a] mb-3 flex items-center justify-center">
-              <span className="text-[#666] text-sm">🛒</span>
+          {/* Navigation Arrows */}
+          {props.showArrows !== false && slides.length > 1 && (
+            <>
+              <button className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-black/50 hover:bg-[#CCAA4C] text-white hover:text-[#353535] flex items-center justify-center transition-colors rounded-full">
+                <span className="text-2xl">‹</span>
+              </button>
+              <button className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-black/50 hover:bg-[#CCAA4C] text-white hover:text-[#353535] flex items-center justify-center transition-colors rounded-full">
+                <span className="text-2xl">›</span>
+              </button>
+            </>
+          )}
+          
+          {/* Dots Navigation */}
+          {props.showDots !== false && slides.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+              {slides.map((_: any, i: number) => (
+                <div
+                  key={i}
+                  className={`w-3 h-3 rounded-full transition-all cursor-pointer ${
+                    i === currentSlide 
+                      ? 'bg-[#CCAA4C] scale-125' 
+                      : 'bg-white/50 hover:bg-white/80'
+                  }`}
+                />
+              ))}
             </div>
-            <p className="text-white text-sm font-bold">{item.name}</p>
-            <p className="text-[#CCAA4C] text-sm">$XX.XX</p>
+          )}
+          
+          {/* Slide Counter */}
+          <div className="absolute top-4 right-4 z-20 bg-black/50 text-white px-3 py-1 text-sm font-bold">
+            {currentSlide + 1} / {slides.length}
           </div>
-        ))}
-      </div>
-    </div>
-  )
+          
+          {/* Auto-play indicator */}
+          {props.autoPlay !== false && (
+            <div className="absolute top-4 left-4 z-20 bg-black/50 text-white/70 px-3 py-1 text-xs uppercase tracking-widest">
+              ▶ Auto
+            </div>
+          )}
+        </div>
+      )
+
+    // ============================================
+    // DIVIDER
+    // ============================================
+    // ============================================
+    // CARD GRID - 1, 2, or 3 column cards
+    // ============================================
+    case 'cardGrid':
+      const cardColumns = props.columns || 3
+      const cards = props.cards || []
+      const cardAccent = styling.accentColor || '#CCAA4C'
+      const cardTextColor = styling.textColor || '#E8E7DA'
+      const buttonBgColor = props.buttonBgColor || cardAccent
+      const buttonTextColor = props.buttonTextColor || '#1a1a1a'
+      
+      return (
+        <div 
+          className={`py-12 ${wrapperClass}`}
+          style={{
+            background: getBackground(styling),
+          }}
+        >
+          <div className="max-w-6xl mx-auto px-6">
+            <div className={`grid gap-6 ${
+              cardColumns === 1 ? 'grid-cols-1 max-w-2xl mx-auto' :
+              cardColumns === 2 ? 'grid-cols-1 md:grid-cols-2' :
+              'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+            }`}>
+              {cards.map((card: any, i: number) => (
+                <div 
+                  key={card.id || i}
+                  className="bg-[#1a1a1a] border-4 border-[#353535] overflow-hidden"
+                >
+                  {props.showImages !== false && (
+                    <div className="aspect-video bg-[#252525] flex items-center justify-center">
+                      {card.image ? (
+                        <img src={card.image} alt={card.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-4xl opacity-30">🖼️</span>
+                      )}
+                    </div>
+                  )}
+                  <div className="p-6">
+                    <h3 
+                      className="text-xl font-bold uppercase tracking-tight mb-2"
+                      style={{ 
+                        fontFamily: 'var(--font-oswald), sans-serif',
+                        color: cardAccent,
+                      }}
+                    >
+                      {card.title || 'Card Title'}
+                    </h3>
+                    <p 
+                      className="text-sm mb-4"
+                      style={{ color: cardTextColor }}
+                    >
+                      {card.description || 'Card description goes here.'}
+                    </p>
+                    {props.showButtons !== false && card.buttonText && (
+                      <button 
+                        className="px-4 py-2 font-bold uppercase text-sm border-2"
+                        style={{
+                          fontFamily: 'var(--font-oswald), sans-serif',
+                          backgroundColor: buttonBgColor,
+                          borderColor: '#353535',
+                          color: buttonTextColor,
+                        }}
+                      >
+                        {card.buttonText}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+
+    // ============================================
+    // IMAGE COLUMNS - 1, 2, or 3 column images
+    // ============================================
+    case 'imageColumns':
+      const imgColumns = props.columns || 2
+      const images = props.images || []
+      const imgAccent = styling.accentColor || '#CCAA4C'
+      const captionColor = styling.textColor || '#888888'
+      
+      const aspectRatios: Record<string, string> = {
+        '1:1': 'aspect-square',
+        '4:3': 'aspect-[4/3]',
+        '16:9': 'aspect-video',
+        '3:2': 'aspect-[3/2]',
+        '21:9': 'aspect-[21/9]',
+      }
+      
+      const gapSizes: Record<string, string> = {
+        small: 'gap-2',
+        medium: 'gap-4',
+        large: 'gap-8',
+      }
+      
+      return (
+        <div 
+          className={`py-12 ${wrapperClass}`}
+          style={{
+            background: getBackground(styling),
+          }}
+        >
+          <div className="max-w-6xl mx-auto px-6">
+            <div className={`grid ${gapSizes[props.gap || 'medium']} ${
+              imgColumns === 1 ? 'grid-cols-1 max-w-3xl mx-auto' :
+              imgColumns === 2 ? 'grid-cols-1 md:grid-cols-2' :
+              'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+            }`}>
+              {images.map((img: any, i: number) => (
+                <div key={img.id || i} className="group">
+                  <div 
+                    className={`${aspectRatios[props.aspectRatio || '16:9']} bg-[#252525] overflow-hidden ${
+                      block.variant === 'rounded' ? 'rounded-lg' :
+                      block.variant === 'framed' ? 'border-4 border-[#353535]' : ''
+                    }`}
+                  >
+                    {img.src ? (
+                      <img 
+                        src={img.src} 
+                        alt={img.alt || `Image ${i + 1}`} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-6xl opacity-20">📷</span>
+                      </div>
+                    )}
+                  </div>
+                  {props.showCaptions !== false && img.caption && (
+                    <p 
+                      className="mt-2 text-sm text-center"
+                      style={{ color: captionColor }}
+                    >
+                      {img.caption}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+
+    // ============================================
+    // DIVIDER
+    // ============================================
+    case 'divider':
+      const dividerStyles: Record<string, string> = {
+        line: 'border-t-2 border-[#353535]',
+        dashed: 'border-t-2 border-dashed border-[#353535]',
+        dots: 'border-t-4 border-dotted border-[#CCAA4C]',
+        industrial: 'h-4 bg-gradient-to-r from-transparent via-[#CCAA4C] to-transparent',
+      }
+      
+      return (
+        <div className={`max-w-6xl mx-auto px-6 py-8 ${wrapperClass}`}>
+          <div className={dividerStyles[props.style || 'line']} />
+        </div>
+      )
+
+    // ============================================
+    // BLOKE SCIENCE SLIDER
+    // ============================================
+    case 'blokeScienceSlider':
+      // Get facts from props or use defaults (10 cards)
+      const scienceFacts = props.facts || [
+        { id: '1', title: 'The First V8 Engine', fact: 'The first V8 engine was patented in 1902 by Léon Levavasseur, a French inventor. Originally designed for aircraft, the V8 configuration became the heart of American muscle cars by the 1960s.', type: 'text' },
+        { id: '2', title: 'Burnout Physics', fact: 'A proper burnout can heat tyre rubber to over 200°C (392°F). The smoke you see is actually vaporized rubber particles mixed with superheated air. That\'s science, mate.', type: 'text' },
+        { id: '3', title: 'The 10mm Socket Curse', fact: 'Studies show the average mechanic loses 3-5 10mm sockets per year. Scientists believe they may be slipping into a parallel dimension. No other explanation makes sense.', type: 'text' },
+        { id: '4', title: 'Horsepower Origins', fact: 'James Watt coined "horsepower" in the 1780s to sell steam engines. He calculated one horse could do 33,000 foot-pounds of work per minute. Modern horses disagree.', type: 'text' },
+        { id: '5', title: 'Shed Thermodynamics', fact: 'The average shed maintains a temperature exactly 15°C hotter than outside in summer and 15°C colder in winter. This is known as the Shed Paradox.', type: 'text' },
+        { id: '6', title: 'Beer Can Engineering', fact: 'An empty beer can can support the weight of a grown man standing on it. However, the slightest dent causes catastrophic structural failure. Handle with care.', type: 'text' },
+        { id: '7', title: 'Torque vs Power', fact: 'Torque is what pushes you back in your seat. Horsepower is how fast you stay pushed. Knowing the difference makes you 47% more interesting at BBQs.', type: 'text' },
+        { id: '8', title: 'WD-40 Facts', fact: 'WD-40 was invented in 1953 on the 40th attempt (hence the name). It was originally designed to prevent corrosion on nuclear missiles. Now it fixes everything.', type: 'text' },
+        { id: '9', title: 'Duct Tape Science', fact: 'Duct tape was invented during WWII to seal ammunition cases. Soldiers called it "duck tape" because water rolled off like a duck\'s back. It can fix literally anything.', type: 'text' },
+        { id: '10', title: 'Garage Door Physics', fact: 'The average garage door travels over 1,500 kilometers in its lifetime. That\'s roughly the distance from Sydney to Brisbane. Your garage door is well-traveled.', type: 'text' },
+      ]
+      const visibleCards = props.visibleCards || 3
+      
+      return (
+        <div 
+          className={`py-16 border-y-8 ${wrapperClass}`}
+          style={{ 
+            background: getBackground(styling, '#353535'),
+            borderColor: styling.accentColor || '#CCAA4C',
+          }}
+        >
+          <div className="max-w-[1400px] mx-auto px-6">
+            {/* Section Heading - matching homepage */}
+            <div className="flex items-center justify-center gap-4 mb-8">
+              <div className="flex-1 h-[3px] bg-gradient-to-r from-transparent via-[#CCAA4C] to-[#CCAA4C]" />
+              <h2 
+                className="text-3xl md:text-4xl font-black uppercase tracking-tight text-[#E3E2D5] px-4"
+                style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+              >
+                {props.heading || 'Bloke Science'}
+              </h2>
+              <div className="flex-1 h-[3px] bg-gradient-to-l from-transparent via-[#CCAA4C] to-[#CCAA4C]" />
+            </div>
+            
+            {/* Slider Cards - show all cards in preview */}
+            <div className="relative">
+              <div className="flex justify-center items-center gap-6 py-4 px-20 overflow-hidden">
+                {scienceFacts.slice(0, visibleCards).map((fact: any, i: number) => {
+                  const centerIndex = Math.floor(visibleCards / 2)
+                  const isCenter = i === centerIndex
+                  const isImage = fact.type === 'image'
+                  
+                  return (
+                    <div
+                      key={fact.id || i}
+                      className={`
+                        relative transition-all duration-500
+                        border-4 border-[#353535]
+                        ${isCenter ? 'scale-100 opacity-100 z-10' : 'scale-90 opacity-60 z-0'}
+                        w-full max-w-sm shrink-0
+                        ${isImage ? '' : 'bg-[#E3E2D5] p-6 md:p-8'}
+                      `}
+                      style={{
+                        boxShadow: isCenter ? '8px 8px 0 #1a1a1a' : '4px 4px 0 #1a1a1a',
+                      }}
+                    >
+                      {isImage ? (
+                        // Image card
+                        <div className="relative">
+                          {fact.imageUrl ? (
+                            <img 
+                              src={fact.imageUrl} 
+                              alt={fact.caption || 'Slide'} 
+                              className="w-full aspect-[4/3] object-cover"
+                            />
+                          ) : (
+                            <div className="w-full aspect-[4/3] bg-[#E3E2D5] flex items-center justify-center">
+                              <span className="text-4xl text-[#353535]/30">🖼️</span>
+                            </div>
+                          )}
+                          {fact.caption && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-[#353535]/90 text-white p-3 text-sm">
+                              {fact.caption}
+                            </div>
+                          )}
+                          {/* Number badge */}
+                          <div className="absolute top-4 left-4 bg-[#FF6B35] text-white px-2 py-1 text-[10px] font-black">
+                            #{i + 1}
+                          </div>
+                        </div>
+                      ) : (
+                        // Text fact card
+                        <>
+                          {/* Did You Know stamp */}
+                          <div 
+                            className="absolute top-4 right-4 text-xs font-bold uppercase tracking-wider text-[#353535]/60"
+                            style={{ 
+                              transform: 'rotate(-5deg)',
+                              border: '2px dashed #353535',
+                              padding: '2px 8px',
+                            }}
+                          >
+                            Did You Know?
+                          </div>
+                          
+                          {/* Number badge */}
+                          <div className="absolute top-4 left-4 bg-[#FF6B35] text-white px-2 py-1 text-[10px] font-black">
+                            #{i + 1}
+                          </div>
+                          
+                          <h3 
+                            className="text-xl md:text-2xl font-black uppercase mb-4 text-[#353535] pr-24 pt-6"
+                            style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                          >
+                            {fact.title}
+                          </h3>
+                          <p className="font-mono text-sm text-[#353535]/80 leading-relaxed">
+                            {fact.fact}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              
+              {/* Navigation buttons */}
+              <button className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-[#CCAA4C] hover:bg-[#FF6B35] text-[#353535] hover:text-white flex items-center justify-center transition-colors shadow-lg">
+                <span className="text-xl">‹</span>
+              </button>
+              <button className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-[#CCAA4C] hover:bg-[#FF6B35] text-[#353535] hover:text-white flex items-center justify-center transition-colors shadow-lg">
+                <span className="text-xl">›</span>
+              </button>
+            </div>
+            
+            {/* Progress dots - show for all cards */}
+            <div className="flex justify-center gap-2 mt-6">
+              {scienceFacts.map((_: any, i: number) => (
+                <div
+                  key={i}
+                  className={`w-3 h-3 transition-all ${
+                    i === Math.floor(visibleCards / 2) ? 'bg-[#CCAA4C] scale-125' : 'bg-[#E3E2D5]/50'
+                  }`}
+                />
+              ))}
+            </div>
+            
+            {/* Auto-play indicator */}
+            {props.autoPlay !== false && (
+              <div className="text-center mt-4">
+                <span className="text-[#E3E2D5]/50 text-xs uppercase tracking-widest">
+                  ⏸ Auto-playing
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )
+
+    // ============================================
+    // COMMUNITY FEED
+    // ============================================
+    case 'communityFeed':
+      return (
+        <div 
+          className={`py-16 ${wrapperClass}`}
+          style={{ background: getBackground(styling) }}
+        >
+          <div className="max-w-6xl mx-auto px-6">
+            <h2 
+              className="text-3xl font-bold uppercase tracking-tight text-white mb-8"
+              style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+            >
+              {props.heading || 'Community Feed'}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-[#252525] border-2 border-[#353535] p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-[#CCAA4C] flex items-center justify-center text-[#1a1a1a] font-bold">
+                      U
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-sm">User Name</p>
+                      <p className="text-[#666] text-xs">2 hours ago</p>
+                    </div>
+                  </div>
+                  <p className="text-[#888] text-sm">
+                    Just finished installing the new headers on the V8. She sounds like a beast now! 🔥
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+
+    // ============================================
+    // PRODUCT EMBED / SHOWCASE
+    // ============================================
+    case 'productEmbed':
+      const productLayout = props.layout || 'grid'
+      const productColumns = props.columns || 4
+      const productCount = props.maxItems || 4
+      const showPrices = props.showPrices !== false
+      const showAddToCart = props.showAddToCart !== false
+      
+      // Sample products for preview
+      const sampleProducts = Array.from({ length: productCount }).map((_, i) => ({
+        id: i + 1,
+        name: `Product ${i + 1}`,
+        price: (19.99 + (i * 10)).toFixed(2),
+        category: ['Apparel', 'Poster', 'Sticker', 'Gear'][i % 4],
+      }))
+      
+      // Product Card Component
+      const renderProductCard = (product: any, size: 'normal' | 'large' = 'normal') => (
+        <div 
+          key={product.id}
+          className={`bg-[#252525] border-4 border-[#353535] overflow-hidden group hover:border-[#CCAA4C] transition-colors ${
+            size === 'large' ? 'row-span-2' : ''
+          }`}
+        >
+          <div className={`bg-[#353535] flex items-center justify-center ${
+            size === 'large' ? 'aspect-[3/4]' : 'aspect-square'
+          }`}>
+            <span className={`opacity-30 ${size === 'large' ? 'text-8xl' : 'text-5xl'}`}>🛒</span>
+          </div>
+          <div className="p-4">
+            <span className="text-[#CCAA4C] text-[10px] uppercase tracking-widest">{product.category}</span>
+            <h3 
+              className="text-white font-bold uppercase tracking-wide mb-2 text-sm"
+              style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+            >
+              {product.name}
+            </h3>
+            {showPrices && (
+              <p className="text-[#CCAA4C] font-bold text-lg mb-3">
+                ${product.price}
+              </p>
+            )}
+            {showAddToCart && (
+              <button className="w-full py-2 bg-[#CCAA4C] text-[#1a1a1a] font-bold uppercase tracking-widest text-xs hover:bg-[#FF6B35] hover:text-white transition-colors">
+                Add to Cart
+              </button>
+            )}
+          </div>
+        </div>
+      )
+      
+      return (
+        <div 
+          className={`py-12 ${wrapperClass}`}
+          style={{ background: getBackground(styling, '#1a1a1a') }}
+        >
+          <div className="max-w-[1200px] mx-auto px-6">
+            {/* Section Heading */}
+            {props.heading && (
+              <div className="flex items-center justify-between mb-8">
+                <h2 
+                  className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white"
+                  style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                >
+                  {props.heading}
+                </h2>
+                {props.viewAllText && (
+                  <span className="text-[#CCAA4C] text-sm font-bold uppercase tracking-widest hover:text-white cursor-pointer">
+                    {props.viewAllText} →
+                  </span>
+                )}
+              </div>
+            )}
+            
+            {/* Data Source Indicator */}
+            <div className="mb-4 text-xs text-[#666] uppercase tracking-widest">
+              {props.dataSource === 'featured' && '⭐ Featured Products'}
+              {props.dataSource === 'latest' && '🆕 Latest Products'}
+              {props.dataSource === 'category' && `📁 ${props.productCategory || 'All'} Products`}
+              {props.dataSource === 'manual' && '✏️ Manual Selection'}
+              {!props.dataSource && '⭐ Featured Products'}
+            </div>
+            
+            {/* GRID LAYOUT */}
+            {productLayout === 'grid' && (
+              <div className={`grid gap-6 ${
+                productColumns === 2 ? 'grid-cols-1 md:grid-cols-2' :
+                productColumns === 3 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :
+                'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+              }`}>
+                {sampleProducts.map(p => renderProductCard(p))}
+              </div>
+            )}
+            
+            {/* CAROUSEL LAYOUT */}
+            {productLayout === 'carousel' && (
+              <div className="relative">
+                <div className="flex gap-6 overflow-hidden">
+                  {sampleProducts.slice(0, 4).map(p => (
+                    <div key={p.id} className="w-64 shrink-0">
+                      {renderProductCard(p)}
+                    </div>
+                  ))}
+                </div>
+                <button className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-[#CCAA4C] text-[#353535] flex items-center justify-center rounded-full shadow-lg">
+                  ‹
+                </button>
+                <button className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-[#CCAA4C] text-[#353535] flex items-center justify-center rounded-full shadow-lg">
+                  ›
+                </button>
+              </div>
+            )}
+            
+            {/* FEATURED LAYOUT (1 large + small) */}
+            {productLayout === 'featured' && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 md:row-span-2">
+                  {renderProductCard(sampleProducts[0], 'large')}
+                </div>
+                <div className="md:col-span-2 grid grid-cols-2 gap-6">
+                  {sampleProducts.slice(1, 5).map(p => renderProductCard(p))}
+                </div>
+              </div>
+            )}
+            
+            {/* LIST LAYOUT */}
+            {productLayout === 'list' && (
+              <div className="space-y-4">
+                {sampleProducts.map(p => (
+                  <div 
+                    key={p.id}
+                    className="flex gap-6 bg-[#252525] border-4 border-[#353535] p-4 hover:border-[#CCAA4C] transition-colors"
+                  >
+                    <div className="w-24 h-24 bg-[#353535] flex items-center justify-center shrink-0">
+                      <span className="text-3xl opacity-30">🛒</span>
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-[#CCAA4C] text-[10px] uppercase tracking-widest">{p.category}</span>
+                      <h3 
+                        className="text-white font-bold uppercase tracking-wide text-lg"
+                        style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                      >
+                        {p.name}
+                      </h3>
+                      {showPrices && (
+                        <p className="text-[#CCAA4C] font-bold text-xl">
+                          ${p.price}
+                        </p>
+                      )}
+                    </div>
+                    {showAddToCart && (
+                      <div className="flex items-center">
+                        <button className="px-6 py-2 bg-[#CCAA4C] text-[#1a1a1a] font-bold uppercase tracking-widest text-xs">
+                          Add to Cart
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )
+
+    // ============================================
+    // DEFAULT FALLBACK
+    // ============================================
+    default:
+      return (
+        <div className={`p-8 border-2 border-dashed border-[#CCAA4C]/30 ${wrapperClass}`}>
+          <div className="bg-[#252525] p-6 rounded text-center">
+            <div className="text-2xl mb-2">📦</div>
+            <div className="text-sm text-[#CCAA4C] uppercase tracking-wide mb-1">
+              {block.type}
+            </div>
+            <p className="text-[#666] text-xs">
+              Block preview not available
+            </p>
+          </div>
+        </div>
+      )
+  }
 }
