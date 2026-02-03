@@ -19,6 +19,16 @@ const categoryFallbacks: Record<string, { title: string; description: string; ta
     description: "Simulated survival in post-atomic landscapes and virtual racing.",
     tagline: "If you can't drive it, simulate it.",
   },
+  weapons: {
+    title: "Weapons & Firearms",
+    description: "Responsible firearms ownership, reviews, and shooting sports.",
+    tagline: "Safety first, accuracy second.",
+  },
+  storage: {
+    title: "Storage & Organisation",
+    description: "Industrial storage solutions, garage organisation, and workshop setups.",
+    tagline: "A place for everything, everything in its place.",
+  },
   science: {
     title: "Bloke Science",
     description: "Did you know? Facts and trivia for the mechanically curious.",

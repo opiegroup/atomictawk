@@ -6,6 +6,9 @@ import { DraggableList } from "@/components/admin/DraggableList";
 import { FormField, Input, Textarea, Select, ImageUpload } from "@/components/admin/FormField";
 import { X, Save, ShoppingBag, Plus, Trash2, Loader2 } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { ProductTableEditor } from "@/components/admin/ProductTableEditor";
+import { MultiImageUpload } from "@/components/admin/ImageUpload";
+import { DocumentUpload } from "@/components/admin/DocumentUpload";
 
 interface ProductVariant {
   id: string;
@@ -21,11 +24,18 @@ interface Spec {
   value: string;
 }
 
+interface ProductTable {
+  title: string;
+  headers: string[];
+  rows: string[][];
+}
+
 interface Product {
   id: string;
   name: string;
   slug: string;
   description: string;
+  long_description: string;
   specs: Spec[];
   price: number;
   compare_price: number | null;
@@ -38,6 +48,9 @@ interface Product {
   status: "draft" | "published" | "archived";
   sort_order: number;
   variants: ProductVariant[];
+  product_tables: ProductTable[];
+  pdf_url: string;
+  care_instructions: string;
 }
 
 const categories = [
@@ -180,6 +193,14 @@ export default function ProductsPage() {
         variants: item.variants.map(v => ({ ...v })),
         specs: item.specs.map(s => ({ ...s })),
         images: [...item.images],
+        product_tables: item.product_tables ? item.product_tables.map(t => ({ 
+          ...t, 
+          headers: [...t.headers],
+          rows: t.rows.map(r => [...r])
+        })) : [],
+        long_description: item.long_description || "",
+        pdf_url: item.pdf_url || "",
+        care_instructions: item.care_instructions || "",
       });
       setIsCreating(false);
     }
@@ -239,6 +260,7 @@ export default function ProductsPage() {
       name: "",
       slug: "",
       description: "",
+      long_description: "",
       specs: [],
       price: 0,
       compare_price: null,
@@ -251,6 +273,9 @@ export default function ProductsPage() {
       status: "draft",
       sort_order: 0,
       variants: [],
+      product_tables: [],
+      pdf_url: "",
+      care_instructions: "",
     });
     setIsCreating(true);
   };
@@ -271,6 +296,7 @@ export default function ProductsPage() {
         name: editingItem.name,
         slug,
         description: editingItem.description,
+        long_description: editingItem.long_description,
         specs: editingItem.specs,
         price: editingItem.price,
         compare_price: editingItem.compare_price,
@@ -282,6 +308,9 @@ export default function ProductsPage() {
         configurable: editingItem.configurable,
         status: editingItem.status,
         sort_order: editingItem.sort_order,
+        product_tables: editingItem.product_tables,
+        pdf_url: editingItem.pdf_url,
+        care_instructions: editingItem.care_instructions,
       };
 
       let productId = editingItem.id;
@@ -511,31 +540,69 @@ export default function ProductsPage() {
                   </FormField>
                 </div>
 
-                <FormField label="Description">
+                <FormField label="Short Description">
                   <Textarea
                     value={editingItem.description}
                     onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
-                    placeholder="Product description..."
-                    rows={3}
+                    placeholder="Brief product description..."
+                    rows={2}
                   />
                 </FormField>
 
-                <FormField label="Product Image URL">
-                  <Input
-                    value={editingItem.images[0] || ""}
-                    onChange={(e) => setEditingItem({ ...editingItem, images: e.target.value ? [e.target.value] : [] })}
-                    placeholder="https://..."
+                <FormField label="Long Description">
+                  <Textarea
+                    value={editingItem.long_description}
+                    onChange={(e) => setEditingItem({ ...editingItem, long_description: e.target.value })}
+                    placeholder="Detailed product description for the Description tab..."
+                    rows={4}
                   />
-                  {editingItem.images[0] && (
-                    <div className="mt-2">
-                      <img 
-                        src={editingItem.images[0]} 
-                        alt="Preview" 
-                        className="w-32 h-32 object-cover border border-[#AEACA1]/30"
-                      />
-                    </div>
-                  )}
                 </FormField>
+
+                {/* Product Tables Editor */}
+                <div className="border-t-2 border-[#AEACA1]/20 pt-6">
+                  <ProductTableEditor
+                    tables={editingItem.product_tables}
+                    onChange={(tables) => setEditingItem({ ...editingItem, product_tables: tables })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField label="Care Instructions">
+                    <Textarea
+                      value={editingItem.care_instructions}
+                      onChange={(e) => setEditingItem({ ...editingItem, care_instructions: e.target.value })}
+                      placeholder="Washing, maintenance instructions..."
+                      rows={2}
+                    />
+                  </FormField>
+
+                  <FormField label="PDF Spec Sheet">
+                    <DocumentUpload
+                      value={editingItem.pdf_url}
+                      onChange={(url) => setEditingItem({ ...editingItem, pdf_url: url })}
+                      bucket="documents"
+                      folder="product-specs"
+                      label="Spec Sheet PDF"
+                    />
+                  </FormField>
+                </div>
+
+                {/* Product Images */}
+                <div className="border-t-2 border-[#AEACA1]/20 pt-6">
+                  <label className="block text-sm font-bold text-[#AEACA1] uppercase tracking-wider mb-4">
+                    Product Images
+                  </label>
+                  <MultiImageUpload
+                    images={editingItem.images}
+                    onChange={(images) => setEditingItem({ ...editingItem, images })}
+                    bucket="products"
+                    folder="images"
+                    maxImages={10}
+                  />
+                  <p className="text-xs text-[#AEACA1]/50 mt-2">
+                    First image is the main product image. Drag & drop or click to upload. You can also paste URLs.
+                  </p>
+                </div>
 
                 <div className="grid grid-cols-2 gap-6">
                   <FormField label="In Stock">

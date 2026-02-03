@@ -881,8 +881,30 @@ export default function GamePage() {
                 Back
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   gameAudio.playStart();
+                  
+                  // Save registration to database
+                  if (player.email) {
+                    try {
+                      console.log('[Game] Registering player:', player.name, player.email);
+                      const response = await fetch('/api/game-register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          email: player.email,
+                          displayName: player.name,
+                          source: 'game',
+                          subscriptions: ['general', 'gaming'],
+                        }),
+                      });
+                      const result = await response.json();
+                      console.log('[Game] Registration result:', result);
+                    } catch (err) {
+                      console.error('[Game] Registration error:', err);
+                    }
+                  }
+                  
                   setGameState("room-select");
                 }}
                 disabled={!player.name.trim()}

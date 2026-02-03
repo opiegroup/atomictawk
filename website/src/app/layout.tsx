@@ -4,6 +4,8 @@ import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { CartProvider } from "@/lib/cart";
+import { CartDrawer } from "@/components/store";
 
 const oswald = Oswald({
   variable: "--font-oswald",
@@ -45,12 +47,15 @@ export default function RootLayout({
         className={`${oswald.variable} ${spaceGrotesk.variable} ${courierPrime.variable} antialiased min-h-screen flex flex-col`}
         style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
       >
-        <GoogleAnalytics />
-        <Header />
-        <main className="flex-grow">
-          {children}
-        </main>
-        <Footer />
+        <CartProvider>
+          <GoogleAnalytics />
+          <Header />
+          <main className="flex-grow">
+            {children}
+          </main>
+          <Footer />
+          <CartDrawer />
+        </CartProvider>
       </body>
     </html>
   );

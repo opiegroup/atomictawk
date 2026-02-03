@@ -93,10 +93,10 @@ async function getDashboardStats() {
     supabase.from('products').select('id', { count: 'exact', head: true }).eq('status', 'published'),
     // Low stock products
     supabase.from('products').select('id', { count: 'exact', head: true }).lt('stock_qty', 10),
-    // Total subscribers
-    supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-    // Subscribers this month
-    supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).gte('created_at', oneMonthAgo),
+    // Total subscribers (all, not just active - some might have null status)
+    supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }),
+    // Subscribers this week (for "new this week" display)
+    supabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }).gte('created_at', oneWeekAgo),
     // Total views
     supabase.from('content').select('view_count'),
     // Views this week
@@ -226,7 +226,7 @@ export default async function AdminPage() {
       label: "Subscribers", 
       value: formatNumber(stats.totalSubscribers), 
       icon: Users, 
-      change: stats.subscribersThisMonth > 0 ? `+${stats.subscribersThisMonth} this month` : "No new subscribers",
+      change: stats.subscribersThisMonth > 0 ? `+${stats.subscribersThisMonth} this week` : "No new subscribers",
       trend: stats.subscribersThisMonth > 0 ? 'up' : 'neutral',
       color: "text-purple-400" 
     },

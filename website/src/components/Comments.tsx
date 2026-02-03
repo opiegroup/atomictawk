@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { MessageSquare, Send, ThumbsUp, Reply, Flag, Loader2, AlertTriangle, LogIn } from 'lucide-react'
+import { MessageSquare, Send, ThumbsUp, Reply, Flag, Loader2, AlertTriangle, LogIn, ShieldAlert } from 'lucide-react'
 import { useAuth, getSupabaseClient } from '@/lib/supabase'
+import { validateComment, containsProfanity } from '@/lib/profanityFilter'
+import { BadgeList, Badge } from '@/components/badges'
 
 interface Comment {
   id: string
@@ -15,6 +17,7 @@ interface Comment {
     id: string
     display_name: string
     avatar_url: string | null
+    badges?: Badge[]
   }
   replies?: Comment[]
   hasLiked?: boolean
@@ -35,6 +38,37 @@ export function Comments({ contentId, contentType = 'content' }: CommentsProps) 
   const [replyText, setReplyText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [languageWarning, setLanguageWarning] = useState<string | null>(null)
+
+  // Check for profanity as user types
+  const checkLanguage = (text: string) => {
+    if (text.length > 3) {
+      const check = containsProfanity(text)
+      if (check.hasProfanity) {
+        if (check.severity === 'high') {
+          setLanguageWarning('Your comment contains language that is not allowed')
+        } else if (check.severity === 'medium') {
+          setLanguageWarning('Your comment may contain inappropriate language')
+        } else {
+          setLanguageWarning(null) // Low severity will be auto-censored
+        }
+      } else {
+        setLanguageWarning(null)
+      }
+    } else {
+      setLanguageWarning(null)
+    }
+  }
+
+  const handleCommentChange = (text: string) => {
+    setNewComment(text)
+    checkLanguage(text)
+  }
+
+  const handleReplyChange = (text: string) => {
+    setReplyText(text)
+    checkLanguage(text)
+  }
 
   // Load comments
   useEffect(() => {
@@ -74,7 +108,20 @@ export function Comments({ contentId, contentType = 'content' }: CommentsProps) 
         .select('id, display_name, avatar_url')
         .in('id', userIds)
 
-      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]))
+      // Get badges for all comment users
+      const badgesByUser = new Map<string, Badge[]>()
+      for (const userId of userIds) {
+        try {
+          const { data: userBadges } = await (supabase as any).rpc('get_user_badges', { p_user_id: userId })
+          if (userBadges) {
+            badgesByUser.set(userId, userBadges.slice(0, 3)) // Only show top 3 badges
+          }
+        } catch (e) {
+          // Ignore badge fetch errors
+        }
+      }
+
+      const profileMap = new Map((profiles || []).map((p: any) => [p.id, { ...p, badges: badgesByUser.get(p.id) || [] }]))
 
       // Check which comments user has liked
       let likedIds: string[] = []
@@ -122,6 +169,16 @@ export function Comments({ contentId, contentType = 'content' }: CommentsProps) 
     const text = parentId ? replyText : newComment
     if (!text.trim()) return
 
+    // Validate comment for profanity
+    const validation = validateComment(text)
+    if (!validation.isValid) {
+      setError(validation.reason || 'Invalid comment')
+      return
+    }
+
+    // Use censored text if available (for low severity profanity)
+    const finalText = validation.censoredText || text
+
     setSubmitting(true)
     setError(null)
     setSuccess(null)
@@ -134,7 +191,7 @@ export function Comments({ contentId, contentType = 'content' }: CommentsProps) 
         // Use the submit_comment function for spam checking
         const { data, error: submitError } = await (supabase as any).rpc('submit_comment', {
           p_content_id: contentId,
-          p_body: text.trim(),
+          p_body: finalText.trim(),
           p_parent_id: parentId,
         })
 
@@ -160,7 +217,7 @@ export function Comments({ contentId, contentType = 'content' }: CommentsProps) 
           .insert({
             upload_id: contentId,
             user_id: user.id,
-            comment: text.trim(),
+            comment: finalText.trim(),
             status: 'active'
           })
 
@@ -266,8 +323,11 @@ export function Comments({ contentId, contentType = 'content' }: CommentsProps) 
 
         <div className="flex-grow">
           {/* Header */}
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="font-bold text-white text-sm">{comment.user.display_name}</span>
+            {comment.user.badges && comment.user.badges.length > 0 && (
+              <BadgeList badges={comment.user.badges} size="sm" maxDisplay={3} />
+            )}
             <span className="text-xs text-[#666]">{formatDate(comment.created_at)}</span>
           </div>
 
@@ -300,22 +360,32 @@ export function Comments({ contentId, contentType = 'content' }: CommentsProps) 
 
           {/* Reply Form */}
           {replyingTo === comment.id && (
-            <div className="mt-3 flex gap-2">
-              <input
-                type="text"
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                placeholder="Write a reply..."
-                className="flex-grow px-3 py-2 bg-[#1a1a1a] border border-[#353535] rounded text-white text-sm focus:border-[#CCAA4C] focus:outline-none"
-                onKeyDown={(e) => e.key === 'Enter' && submitComment(comment.id)}
-              />
-              <button
-                onClick={() => submitComment(comment.id)}
-                disabled={submitting || !replyText.trim()}
-                className="px-4 py-2 bg-[#CCAA4C] text-[#1a1a1a] font-bold text-sm rounded hover:bg-[#CCAA4C]/80 disabled:opacity-50"
-              >
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reply'}
-              </button>
+            <div className="mt-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={replyText}
+                  onChange={(e) => handleReplyChange(e.target.value)}
+                  placeholder="Write a reply..."
+                  className={`flex-grow px-3 py-2 bg-[#1a1a1a] border rounded text-white text-sm focus:outline-none ${
+                    languageWarning ? 'border-orange-500 focus:border-orange-500' : 'border-[#353535] focus:border-[#CCAA4C]'
+                  }`}
+                  onKeyDown={(e) => e.key === 'Enter' && !languageWarning && submitComment(comment.id)}
+                />
+                <button
+                  onClick={() => submitComment(comment.id)}
+                  disabled={submitting || !replyText.trim() || !!languageWarning}
+                  className="px-4 py-2 bg-[#CCAA4C] text-[#1a1a1a] font-bold text-sm rounded hover:bg-[#CCAA4C]/80 disabled:opacity-50"
+                >
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reply'}
+                </button>
+              </div>
+              {languageWarning && (
+                <div className="mt-1 flex items-center gap-1 text-orange-400 text-xs">
+                  <ShieldAlert className="w-3 h-3" />
+                  {languageWarning}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -358,11 +428,19 @@ export function Comments({ contentId, contentType = 'content' }: CommentsProps) 
             <div className="flex-grow">
               <textarea
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
+                onChange={(e) => handleCommentChange(e.target.value)}
                 placeholder="Share your thoughts..."
                 rows={3}
-                className="w-full px-4 py-3 bg-[#1a1a1a] border border-[#353535] rounded text-white text-sm focus:border-[#CCAA4C] focus:outline-none resize-none"
+                className={`w-full px-4 py-3 bg-[#1a1a1a] border rounded text-white text-sm focus:outline-none resize-none ${
+                  languageWarning ? 'border-orange-500 focus:border-orange-500' : 'border-[#353535] focus:border-[#CCAA4C]'
+                }`}
               />
+              {languageWarning && (
+                <div className="mt-1 flex items-center gap-1 text-orange-400 text-xs">
+                  <ShieldAlert className="w-3 h-3" />
+                  {languageWarning}
+                </div>
+              )}
               <div className="flex justify-end mt-2">
                 <button
                   onClick={() => submitComment()}

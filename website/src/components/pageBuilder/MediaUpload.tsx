@@ -37,38 +37,56 @@ export function MediaUpload({
       const { getSupabaseClient } = await import('@/lib/supabase/client')
       const supabase = getSupabaseClient()
       if (!supabase) {
-        throw new Error('Not authenticated')
+        throw new Error('Not connected to database')
       }
 
-      // Check file size (max 50MB for videos, 10MB for images)
-      const maxSize = file.type.startsWith('video/') ? 50 * 1024 * 1024 : 10 * 1024 * 1024
+      const isVideo = file.type.startsWith('video/')
+      
+      // Check file size (max 100MB for videos, 5MB for images)
+      const maxSize = isVideo ? 100 * 1024 * 1024 : 5 * 1024 * 1024
       if (file.size > maxSize) {
-        throw new Error(`File too large. Max ${file.type.startsWith('video/') ? '50MB' : '10MB'}`)
+        throw new Error(`File too large. Max ${isVideo ? '100MB' : '5MB'}. Your file: ${(file.size / 1024 / 1024).toFixed(1)}MB`)
       }
 
       // Generate unique filename
-      const ext = file.name.split('.').pop()
+      const ext = file.name.split('.').pop()?.toLowerCase() || (isVideo ? 'mp4' : 'jpg')
       const timestamp = Date.now()
-      const folder = file.type.startsWith('video/') ? 'videos' : 'images'
-      const filename = `${folder}/${timestamp}_${Math.random().toString(36).substring(7)}.${ext}`
+      const safeName = file.name
+        .toLowerCase()
+        .replace(/\.[^.]+$/, '')
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .substring(0, 30)
+      
+      // Use correct bucket: 'videos' for videos, 'products' for images
+      const bucket = isVideo ? 'videos' : 'products'
+      const folder = isVideo ? 'content' : 'images'
+      const filename = `${folder}/${timestamp}-${safeName}.${ext}`
 
-      // Upload to media_library bucket
+      console.log(`[MediaUpload] Uploading to ${bucket}/${filename}`)
+
+      // Upload to appropriate bucket
       const { data, error: uploadError } = await (supabase.storage as any)
-        .from('media_library')
+        .from(bucket)
         .upload(filename, file, {
           cacheControl: '3600',
           upsert: false
         })
 
-      if (uploadError) throw uploadError
+      if (uploadError) {
+        console.error('[MediaUpload] Upload error:', uploadError)
+        throw new Error(uploadError.message || 'Upload failed')
+      }
 
       // Get public URL
       const { data: { publicUrl } } = (supabase.storage as any)
-        .from('media_library')
+        .from(bucket)
         .getPublicUrl(filename)
 
+      console.log('[MediaUpload] Success:', publicUrl)
       onChange(publicUrl)
     } catch (err: any) {
+      console.error('[MediaUpload] Error:', err)
       setError(err.message || 'Upload failed')
     } finally {
       setIsUploading(false)
@@ -105,13 +123,13 @@ export function MediaUpload({
         {label}
       </label>
 
-      {/* Preview */}
+      {/* Preview - taller for better thumbnail visibility */}
       {value && (
         <div className="relative rounded overflow-hidden border border-[#353535]">
           {isVideo ? (
             <video 
               src={value} 
-              className="w-full h-32 object-cover"
+              className="w-full aspect-video object-cover"
               muted
               loop
               autoPlay
@@ -121,7 +139,7 @@ export function MediaUpload({
             <img 
               src={value} 
               alt="Preview" 
-              className="w-full h-32 object-cover"
+              className="w-full aspect-[4/3] object-cover"
             />
           )}
           <button
@@ -169,7 +187,7 @@ export function MediaUpload({
               Drop {accept === 'video' ? 'video' : accept === 'image' ? 'image' : 'file'} here or click to upload
             </p>
             <p className="text-[10px] text-[#555]">
-              {accept === 'video' ? 'MP4, WebM (max 50MB)' : accept === 'image' ? 'JPG, PNG, GIF (max 10MB)' : 'Images or Videos'}
+              {accept === 'video' ? 'MP4, WebM (max 100MB)' : accept === 'image' ? 'JPG, PNG, GIF (max 5MB)' : 'Images or Videos'}
             </p>
           </div>
         )}

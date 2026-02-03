@@ -15,11 +15,18 @@ interface Variant {
   price_adjustment: number;
 }
 
+interface ProductTable {
+  title: string;
+  headers: string[];
+  rows: string[][];
+}
+
 interface Product {
   id: string;
   name: string;
   slug: string;
   description: string | null;
+  long_description: string | null;
   specs: Spec[];
   price: number;
   compare_price: number | null;
@@ -31,6 +38,10 @@ interface Product {
   featured: boolean;
   configurable: boolean;
   variants: Variant[];
+  pdf_url: string | null;
+  care_instructions: string | null;
+  shipping_info: string | null;
+  product_tables: ProductTable[];
 }
 
 async function getProduct(slug: string): Promise<Product | null> {
@@ -74,11 +85,26 @@ async function getProduct(slug: string): Promise<Product | null> {
     }
   }
 
+  // Parse product_tables if it's a string
+  let productTables = data.product_tables;
+  if (typeof productTables === 'string') {
+    try {
+      productTables = JSON.parse(productTables);
+    } catch {
+      productTables = [];
+    }
+  }
+
   return {
     ...data,
     specs: specs || [],
     images: images || [],
     variants: variants || [],
+    long_description: data.long_description || null,
+    pdf_url: data.pdf_url || null,
+    care_instructions: data.care_instructions || null,
+    shipping_info: data.shipping_info || null,
+    product_tables: productTables || [],
   } as Product;
 }
 

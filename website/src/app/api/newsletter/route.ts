@@ -34,7 +34,8 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabase();
     if (supabase) {
       try {
-        await supabase.from('newsletter_subscribers').upsert({
+        console.log('Saving to Supabase newsletter_subscribers...');
+        const { data, error } = await supabase.from('newsletter_subscribers').upsert({
           email: normalizedEmail,
           subscribed_to: ['general'],
           source: source || 'website',
@@ -42,9 +43,17 @@ export async function POST(request: NextRequest) {
         }, {
           onConflict: 'email',
         });
+        
+        if (error) {
+          console.error('Supabase save error:', error);
+        } else {
+          console.log('Supabase save success:', data);
+        }
       } catch (dbError) {
-        console.log('Database save skipped:', dbError);
+        console.log('Database save error:', dbError);
       }
+    } else {
+      console.log('Supabase client not available');
     }
 
     // Add to Brevo (email marketing)

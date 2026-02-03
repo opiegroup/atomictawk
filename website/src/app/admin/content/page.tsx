@@ -423,8 +423,8 @@ export default function ContentPage() {
           <div className="divide-y divide-[#353535]">
             {filteredContent.map((item) => (
               <div key={item.id} className="p-4 flex items-center gap-4 hover:bg-[#2a2a2a]">
-                {/* Thumbnail */}
-                <div className="w-24 h-16 bg-[#1a1a1a] rounded overflow-hidden shrink-0">
+                {/* Thumbnail - taller 4:3 ratio */}
+                <div className="w-28 h-20 bg-[#1a1a1a] rounded overflow-hidden shrink-0">
                   {item.thumbnail_url ? (
                     <img src={item.thumbnail_url} alt="" className="w-full h-full object-cover" />
                   ) : (

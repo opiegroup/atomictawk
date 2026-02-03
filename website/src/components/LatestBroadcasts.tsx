@@ -209,8 +209,8 @@ export function LatestBroadcasts({
               className="block group"
             >
               <div className="border-4 border-[#353535] bg-white hover:border-[#CCAA4C] transition-colors h-full">
-                {/* Thumbnail */}
-                <div className="aspect-video bg-[#353535] relative overflow-hidden">
+                {/* Thumbnail - 4:3 for less cropping */}
+                <div className="aspect-[4/3] bg-[#353535] relative overflow-hidden">
                   {item.thumbnail_url ? (
                     <Image
                       src={item.thumbnail_url}

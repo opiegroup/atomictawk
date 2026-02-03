@@ -538,12 +538,41 @@ body {
 .blog-content {
   color: rgba(255, 255, 255, 0.9);
   font-size: 1.125rem;
-  line-height: 1.8;
+  line-height: 1.6;
 }
 
 .blog-content p {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5em;
   color: rgba(255, 255, 255, 0.9);
+}
+
+/* Tighter spacing for consecutive paragraphs (soft line breaks) */
+.blog-content p + p {
+  margin-top: 0;
+}
+
+/* Add more space before/after headings and special elements */
+.blog-content p + h2,
+.blog-content p + h3,
+.blog-content p + h4 {
+  margin-top: 1.5em;
+}
+
+/* Empty paragraphs (intentional blank lines) create proper spacing */
+.blog-content p:empty,
+.blog-content p > br:only-child {
+  margin-bottom: 1em;
+}
+
+/* Lists get proper spacing from paragraphs */
+.blog-content p + ul,
+.blog-content p + ol {
+  margin-top: 0.5em;
+}
+
+.blog-content ul + p,
+.blog-content ol + p {
+  margin-top: 1em;
 }
 
 .blog-content a {
@@ -562,13 +591,14 @@ body {
 
 .blog-content ul,
 .blog-content ol {
-  margin: 1.5rem 0;
+  margin: 0.75rem 0;
   padding-left: 1.5rem;
   color: rgba(255, 255, 255, 0.9);
 }
 
 .blog-content li {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.5;
 }
 
 .blog-content li::marker {
@@ -597,6 +627,16 @@ body {
 .prose-invert li,
 .prose-invert blockquote {
   color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Tighter prose paragraphs */
+.prose p {
+  margin-top: 0 !important;
+  margin-bottom: 0.5em !important;
+}
+
+.prose p + p {
+  margin-top: 0 !important;
 }
 
 /* Hot orange subheadings for blog/article content */

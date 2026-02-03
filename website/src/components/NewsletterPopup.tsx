@@ -62,30 +62,38 @@ export function NewsletterPopup({
     setError(null)
 
     try {
-      const supabase = getSupabaseClient()
-      if (!supabase) throw new Error('Not connected')
-
       // Get selected subscriptions
       const subscribedTo = Object.entries(subscriptions)
         .filter(([_, v]) => v)
         .map(([k]) => k)
 
-      // Call subscribe function
-      const { data, error: subError } = await (supabase as any).rpc('subscribe_newsletter', {
-        p_email: email.toLowerCase(),
-        p_subscribed_to: subscribedTo,
-        p_source: source,
-        p_game_display_name: registerForGame ? displayName : null,
-        p_is_game_registered: registerForGame,
+      // Use API endpoint (uses service role key on server)
+      const endpoint = registerForGame ? '/api/game-register' : '/api/newsletter'
+      
+      console.log('[NewsletterPopup] Submitting to:', endpoint)
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.toLowerCase(),
+          name: displayName || undefined,
+          displayName: displayName || undefined,
+          source: source,
+          subscriptions: subscribedTo,
+        }),
       })
 
-      if (subError) throw subError
+      const result = await response.json()
+      console.log('[NewsletterPopup] Response:', result)
 
-      const result = data?.[0] || data
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to subscribe')
+      }
 
       // Store in localStorage
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        id: result.subscriber_id,
+        id: result.subscriberId,
         email: email.toLowerCase(),
         displayName: displayName || null,
         isGameRegistered: registerForGame,
@@ -94,8 +102,8 @@ export function NewsletterPopup({
 
       setSuccess(true)
       
-      if (onSuccess && result.subscriber_id) {
-        onSuccess(result.subscriber_id)
+      if (onSuccess && result.subscriberId) {
+        onSuccess(result.subscriberId)
       }
 
       // Close after delay

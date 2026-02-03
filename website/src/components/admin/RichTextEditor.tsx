@@ -75,6 +75,42 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = "250p
     }
   }, [onChange]);
 
+  // Custom image handler
+  const imageHandler = useCallback(() => {
+    const url = prompt('Paste image URL (from Media Library - use "Copy URL"):');
+    if (url && quillRef.current) {
+      const editor = quillRef.current.getEditor();
+      const range = editor.getSelection(true);
+      editor.insertEmbed(range.index, 'image', url);
+      editor.setSelection(range.index + 1);
+    }
+  }, []);
+
+  // Custom video handler
+  const videoHandler = useCallback(() => {
+    const url = prompt('Paste video URL (YouTube, Vimeo, or direct MP4 from Media Library):');
+    if (url && quillRef.current) {
+      const editor = quillRef.current.getEditor();
+      const range = editor.getSelection(true);
+      
+      // Convert YouTube/Vimeo URLs to embed format
+      let embedUrl = url;
+      if (url.includes('youtube.com/watch')) {
+        const videoId = url.split('v=')[1]?.split('&')[0];
+        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+      } else if (url.includes('youtu.be/')) {
+        const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+      } else if (url.includes('vimeo.com/')) {
+        const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+        embedUrl = `https://player.vimeo.com/video/${videoId}`;
+      }
+      
+      editor.insertEmbed(range.index, 'video', embedUrl);
+      editor.setSelection(range.index + 1);
+    }
+  }, []);
+
   const modules = useMemo(() => ({
     toolbar: {
       container: [
@@ -100,6 +136,8 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = "250p
           // @ts-ignore
           this.quill.history.redo();
         },
+        image: imageHandler,
+        video: videoHandler,
       },
     },
     history: {
@@ -110,7 +148,7 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = "250p
     clipboard: {
       matchVisual: false,
     },
-  }), []);
+  }), [imageHandler, videoHandler]);
 
   const formats = [
     "header",
@@ -259,7 +297,7 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = "250p
         .rich-text-editor-wrapper .ql-editor {
           color: #E3E2D5;
           font-size: 15px;
-          line-height: 1.8;
+          line-height: 1.5;
           padding: 16px;
           min-height: ${minHeight};
         }
@@ -275,30 +313,47 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = "250p
         /* Content styling */
         .rich-text-editor-wrapper .ql-editor h1 {
           color: #CCAA4C;
-          font-size: 2em;
+          font-size: 1.75em;
           font-weight: 700;
-          margin-bottom: 0.5em;
+          margin: 0.75em 0 0.35em 0;
+          line-height: 1.2;
         }
         .rich-text-editor-wrapper .ql-editor h2 {
           color: #CCAA4C;
-          font-size: 1.5em;
+          font-size: 1.4em;
           font-weight: 700;
-          margin-bottom: 0.5em;
+          margin: 0.65em 0 0.3em 0;
+          line-height: 1.2;
         }
         .rich-text-editor-wrapper .ql-editor h3 {
           color: #CCAA4C;
-          font-size: 1.25em;
+          font-size: 1.2em;
           font-weight: 600;
-          margin-bottom: 0.5em;
+          margin: 0.5em 0 0.25em 0;
+          line-height: 1.3;
         }
         .rich-text-editor-wrapper .ql-editor h4 {
           color: #CCAA4C;
-          font-size: 1.1em;
+          font-size: 1.05em;
           font-weight: 600;
-          margin-bottom: 0.5em;
+          margin: 0.4em 0 0.2em 0;
+          line-height: 1.3;
+        }
+        .rich-text-editor-wrapper .ql-editor h1:first-child,
+        .rich-text-editor-wrapper .ql-editor h2:first-child,
+        .rich-text-editor-wrapper .ql-editor h3:first-child,
+        .rich-text-editor-wrapper .ql-editor h4:first-child {
+          margin-top: 0;
         }
         .rich-text-editor-wrapper .ql-editor p {
-          margin-bottom: 1em;
+          margin-bottom: 0.5em;
+          margin-top: 0;
+        }
+        .rich-text-editor-wrapper .ql-editor p:last-child {
+          margin-bottom: 0;
+        }
+        .rich-text-editor-wrapper .ql-editor p + p {
+          margin-top: 0.5em;
         }
         .rich-text-editor-wrapper .ql-editor a {
           color: #CCAA4C;
@@ -309,8 +364,8 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = "250p
         }
         .rich-text-editor-wrapper .ql-editor blockquote {
           border-left: 4px solid #CCAA4C;
-          padding-left: 16px;
-          margin: 1em 0;
+          padding-left: 12px;
+          margin: 0.5em 0;
           color: #AEACA1;
           font-style: italic;
         }
@@ -318,21 +373,47 @@ export function RichTextEditor({ value, onChange, placeholder, minHeight = "250p
           background: #353535;
           color: #E3E2D5;
           border-radius: 4px;
-          padding: 12px;
+          padding: 10px;
           overflow-x: auto;
           font-family: monospace;
+          margin: 0.5em 0;
+          font-size: 13px;
         }
         .rich-text-editor-wrapper .ql-editor ul,
         .rich-text-editor-wrapper .ql-editor ol {
-          padding-left: 1.5em;
-          margin-bottom: 1em;
+          padding-left: 1.25em;
+          margin: 0.4em 0;
         }
         .rich-text-editor-wrapper .ql-editor li {
-          margin-bottom: 0.5em;
+          margin-bottom: 0.15em;
+          padding-left: 0.25em;
+        }
+        .rich-text-editor-wrapper .ql-editor li:last-child {
+          margin-bottom: 0;
         }
         .rich-text-editor-wrapper .ql-editor img {
           max-width: 100%;
+          height: auto;
           border-radius: 4px;
+          margin: 0.75em 0;
+          display: block;
+        }
+        .rich-text-editor-wrapper .ql-editor iframe.ql-video,
+        .rich-text-editor-wrapper .ql-editor .ql-video {
+          display: block;
+          width: 100% !important;
+          min-height: 400px;
+          aspect-ratio: 16/9;
+          border-radius: 4px;
+          margin: 0.75em 0;
+          border: 2px solid #353535;
+        }
+        .rich-text-editor-wrapper .ql-editor video {
+          display: block;
+          width: 100%;
+          max-width: 100%;
+          border-radius: 4px;
+          margin: 0.75em 0;
         }
         
         /* Tooltip styling */

@@ -40,8 +40,8 @@ export function ContentCard({
           )}
         </div>
 
-        {/* Thumbnail */}
-        <div className="relative aspect-video bg-black overflow-hidden">
+        {/* Thumbnail - 4:3 aspect ratio for less cropping */}
+        <div className="relative aspect-[4/3] bg-black overflow-hidden">
           <div className="absolute inset-0 crt-scanline z-10 opacity-40"></div>
           <Image
             src={thumbnailUrl}

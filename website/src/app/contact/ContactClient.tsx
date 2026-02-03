@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui";
 import { Radio, Mail, MapPin, Phone, Send, Check, Youtube, Instagram, Twitter } from "lucide-react";
 import { SiteSettings, SocialLink } from "@/lib/siteSettings";
+import { NewsletterForm } from "@/components/NewsletterForm";
 
 // Icon mapping for social platforms
 const socialIcons: Record<string, React.ComponentType<any>> = {
@@ -28,21 +29,32 @@ export function ContactClient({ settings, socialLinks }: ContactClientProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
     
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setIsSubmitting(false);
-    setIsSubmitted(true);
-  };
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formState),
+      });
 
-  const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle newsletter subscription
-    alert("You've been added to the broadcast list!");
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsSubmitted(true);
+      } else {
+        setError(data.error || 'Failed to send message');
+      }
+    } catch (err) {
+      setError('Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -255,18 +267,7 @@ export function ContactClient({ settings, socialLinks }: ContactClientProps) {
               <p className="text-sm text-[#353535]/70 mb-6">
                 {settings.newsletter_description}
               </p>
-              <form onSubmit={handleSubscribe} className="space-y-4">
-                <input
-                  type="email"
-                  required
-                  className="w-full border-3 border-[#353535] px-4 py-3 font-bold uppercase text-sm focus:ring-[#CCAA4C] focus:border-[#CCAA4C]"
-                  style={{ borderWidth: "3px" }}
-                  placeholder="Your email..."
-                />
-                <Button type="submit" variant="secondary" className="w-full">
-                  Subscribe
-                </Button>
-              </form>
+              <NewsletterForm source="contact" buttonText="Subscribe" />
             </div>
 
             {/* Social Links */}

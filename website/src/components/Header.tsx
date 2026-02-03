@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Menu, X, Search, Radio, User, LogIn, LogOut, Shield, ChevronDown } from "lucide-react";
 import { useAuth, useRole, getSupabaseClient } from "@/lib/supabase";
+import { CartIcon } from "@/components/store";
 
 // Default fallback links (used if database not available)
 const defaultNavLinks = [
@@ -265,6 +266,9 @@ export function Header() {
             </div>
           )}
 
+          {/* Cart Icon */}
+          <CartIcon />
+
           {/* Radio Icon */}
           <div className="hidden xl:flex w-10 h-10 bg-[#353535] rounded-full items-center justify-center text-[#CCAA4C]">
             <Radio className="w-5 h-5" />
@@ -283,9 +287,6 @@ export function Header() {
           </button>
         </div>
       </div>
-
-      {/* Hazard Stripe */}
-      <div className="h-2 hazard-stripe opacity-50"></div>
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (

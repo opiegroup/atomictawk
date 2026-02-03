@@ -1,8 +1,19 @@
+"use client";
+
+import { useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import { CheckCircle, Package, Radio } from "lucide-react";
+import { useCart } from "@/lib/cart";
 
 export default function SuccessPage() {
+  const { clearCart } = useCart();
+
+  // Clear cart when success page loads
+  useEffect(() => {
+    clearCart();
+  }, [clearCart]);
+
   return (
     <div className="min-h-screen bg-[#E3E2D5] flex items-center justify-center p-6">
       <div className="max-w-lg w-full">

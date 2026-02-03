@@ -45,6 +45,23 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
   }
 
   try {
+    const requestBody = {
+      sender: options.sender || DEFAULT_SENDER,
+      to: options.to,
+      subject: options.subject,
+      htmlContent: options.htmlContent,
+      textContent: options.textContent,
+      replyTo: options.replyTo,
+      tags: options.tags,
+    };
+    
+    console.log('Brevo sendEmail request:', {
+      sender: requestBody.sender,
+      to: requestBody.to,
+      subject: requestBody.subject,
+      tags: requestBody.tags,
+    });
+    
     const response = await fetch(`${BREVO_API_URL}/smtp/email`, {
       method: 'POST',
       headers: {
@@ -52,24 +69,29 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
         'api-key': BREVO_API_KEY,
         'content-type': 'application/json',
       },
-      body: JSON.stringify({
-        sender: options.sender || DEFAULT_SENDER,
-        to: options.to,
-        subject: options.subject,
-        htmlContent: options.htmlContent,
-        textContent: options.textContent,
-        replyTo: options.replyTo,
-        tags: options.tags,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
-    const data = await response.json();
+    console.log('Brevo sendEmail response status:', response.status);
+    
+    const text = await response.text();
+    console.log('Brevo sendEmail response body:', text);
+    
+    let data: any = {};
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.log('Could not parse email response as JSON');
+      }
+    }
 
     if (!response.ok) {
       console.error('Brevo email error:', data);
       return { success: false, error: data.message || 'Failed to send email' };
     }
 
+    console.log('Brevo email sent successfully, messageId:', data.messageId);
     return { success: true, messageId: data.messageId };
   } catch (error) {
     console.error('Brevo email error:', error);
@@ -85,6 +107,19 @@ export async function addContact(options: ContactOptions): Promise<{ success: bo
   }
 
   try {
+    const requestBody = {
+      email: options.email,
+      attributes: {
+        FIRSTNAME: options.firstName,
+        LASTNAME: options.lastName,
+        ...options.attributes,
+      },
+      listIds: options.listIds || [NEWSLETTER_LIST_ID],
+      updateEnabled: options.updateEnabled ?? true,
+    };
+    
+    console.log('Brevo addContact request:', JSON.stringify(requestBody, null, 2));
+    
     const response = await fetch(`${BREVO_API_URL}/contacts`, {
       method: 'POST',
       headers: {
@@ -92,27 +127,38 @@ export async function addContact(options: ContactOptions): Promise<{ success: bo
         'api-key': BREVO_API_KEY,
         'content-type': 'application/json',
       },
-      body: JSON.stringify({
-        email: options.email,
-        attributes: {
-          FIRSTNAME: options.firstName,
-          LASTNAME: options.lastName,
-          ...options.attributes,
-        },
-        listIds: options.listIds || [NEWSLETTER_LIST_ID],
-        updateEnabled: options.updateEnabled ?? true,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
-    const data = await response.json();
+    console.log('Brevo addContact response status:', response.status);
+    
+    // Handle successful responses (201 Created often has no body)
+    if (response.status === 201 || response.status === 204) {
+      console.log('Brevo contact added successfully');
+      return { success: true };
+    }
+
+    // Try to parse response body
+    const text = await response.text();
+    console.log('Brevo addContact response body:', text);
+    
+    let data: any = {};
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.log('Could not parse response as JSON');
+      }
+    }
 
     if (!response.ok) {
       // Contact already exists is not really an error
       if (data.code === 'duplicate_parameter') {
+        console.log('Contact already exists, treating as success');
         return { success: true };
       }
       console.error('Brevo contact error:', data);
-      return { success: false, error: data.message || 'Failed to add contact' };
+      return { success: false, error: data.message || `Failed to add contact (${response.status})` };
     }
 
     return { success: true };
@@ -141,17 +187,20 @@ export async function subscribeToNewsletter(
 
   if (result.success) {
     // Send welcome email
-    await sendWelcomeEmail(email, name);
+    console.log('Sending welcome email to:', email);
+    const emailResult = await sendWelcomeEmail(email, name);
+    console.log('Welcome email result:', emailResult);
   }
 
   return result;
 }
 
 // Send welcome email to new subscriber
-export async function sendWelcomeEmail(email: string, name?: string): Promise<void> {
+export async function sendWelcomeEmail(email: string, name?: string): Promise<{ success: boolean; error?: string }> {
   const firstName = name || 'Mate';
+  console.log('sendWelcomeEmail called for:', email);
   
-  await sendEmail({
+  const result = await sendEmail({
     to: [{ email, name }],
     subject: 'Welcome to Atomic Tawk - You\'re In!',
     htmlContent: `
@@ -221,6 +270,9 @@ Stay tuned. Keep your engine humming.
     `,
     tags: ['welcome', 'newsletter'],
   });
+  
+  console.log('sendWelcomeEmail result:', result);
+  return result;
 }
 
 // Send contact form notification

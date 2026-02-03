@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
 import { PageBlock } from '@/lib/pageBuilder'
 import { Gamepad2, ShoppingBag, MessageSquare, Trophy, Tag, Users, Camera, Tv, Zap, Star } from 'lucide-react'
 
@@ -23,6 +24,19 @@ function getBackground(styling: any, defaultBg?: string): string | undefined {
   return defaultBg
 }
 
+// Helper to convert spacing size to CSS value
+function getSpacingValue(size: string | undefined): string {
+  switch (size) {
+    case 'none': return '0'
+    case 'small': return '8px'
+    case 'medium': return '16px'
+    case 'large': return '32px'
+    case 'xlarge': return '64px'
+    default: return '0'
+  }
+}
+
+
 // Visual WYSIWYG BlockRenderer - renders actual block previews
 export function BlockRenderer({ block, isEditing }: BlockRendererProps) {
   const props = block.props || {}
@@ -31,6 +45,51 @@ export function BlockRenderer({ block, isEditing }: BlockRendererProps) {
   // Common wrapper style
   const wrapperClass = isEditing ? 'pointer-events-none' : ''
   
+  // Get margin styles - these will be applied via padding on block's outer div
+  // Using padding instead of margin prevents white gaps
+  const marginStyles: React.CSSProperties = {
+    paddingTop: styling.marginTop ? getSpacingValue(styling.marginTop) : undefined,
+    paddingBottom: styling.marginBottom ? getSpacingValue(styling.marginBottom) : undefined,
+  }
+  const hasMargin = styling.marginTop || styling.marginBottom
+  
+  // Get padding styles - applied to content area inside the block
+  const paddingStyles: React.CSSProperties = {
+    paddingTop: styling.paddingTop && styling.paddingTop !== 'none' ? getSpacingValue(styling.paddingTop) : undefined,
+    paddingBottom: styling.paddingBottom && styling.paddingBottom !== 'none' ? getSpacingValue(styling.paddingBottom) : undefined,
+  }
+  const hasPadding = (styling.paddingTop && styling.paddingTop !== 'none') || 
+                     (styling.paddingBottom && styling.paddingBottom !== 'none')
+  
+  // Helper to wrap content with spacing
+  // - Margin: adds space OUTSIDE the block (between blocks)
+  // - Padding: adds space INSIDE the block (pushes content inward)
+  // Hero/atomicHero blocks handle their own spacing internally
+  const wrapWithSpacing = (content: React.ReactNode) => {
+    // Skip wrapping for blocks that handle their own spacing
+    if (block.type === 'hero' || block.type === 'atomicHero') {
+      return content
+    }
+    
+    const needsWrapper = hasMargin || hasPadding
+    if (!needsWrapper) return content
+    
+    // Get the background from the block's styling or use dark default
+    const bgColor = styling.backgroundColor || styling.backgroundGradient || '#1a1a1a'
+    
+    return (
+      <div style={{
+        ...marginStyles,
+        ...paddingStyles,
+        background: hasMargin ? bgColor : undefined,
+      }}>
+        {content}
+      </div>
+    )
+  }
+  
+  // Render block content
+  const renderContent = () => {
   switch (block.type) {
     // ============================================
     // HERO BLOCKS - Atomic Tawk Industrial Style
@@ -45,10 +104,23 @@ export function BlockRenderer({ block, isEditing }: BlockRendererProps) {
       // Get background image from styling or props
       const bgImage = styling.backgroundImage || props.backgroundImage
       
-      return (
+      // Hero handles its own spacing - video/image fills the entire space including margins
+      // Margin adds space that the video/bg fills, padding adds space inside the content
+      const heroMarginSpacing = {
+        paddingTop: styling.marginTop ? getSpacingValue(styling.marginTop) : undefined,
+        paddingBottom: styling.marginBottom ? getSpacingValue(styling.marginBottom) : undefined,
+      }
+      const heroContentPadding = {
+        paddingTop: styling.paddingTop && styling.paddingTop !== 'none' ? getSpacingValue(styling.paddingTop) : undefined,
+        paddingBottom: styling.paddingBottom && styling.paddingBottom !== 'none' ? getSpacingValue(styling.paddingBottom) : undefined,
+      }
+      
+      // Mark that hero handles its own spacing (don't wrap it externally)
+      const heroContent = (
         <div 
           className={`relative min-h-[500px] flex items-center justify-center overflow-hidden ${wrapperClass}`}
           style={{
+            ...heroMarginSpacing,
             backgroundImage: !hasVideo && bgImage 
               ? `url(${bgImage})` 
               : !hasVideo ? 'radial-gradient(circle at center, #E8E7DA 0%, #D4D3C6 100%)' : undefined,
@@ -96,10 +168,13 @@ export function BlockRenderer({ block, isEditing }: BlockRendererProps) {
           )}
           
           {/* Content */}
-          <div className={`relative z-10 text-center px-8 max-w-4xl ${
-            props.alignment === 'left' ? 'text-left mr-auto' : 
-            props.alignment === 'right' ? 'text-right ml-auto' : 'text-center mx-auto'
-          }`}>
+          <div 
+            className={`relative z-10 text-center px-8 max-w-4xl ${
+              props.alignment === 'left' ? 'text-left mr-auto' : 
+              props.alignment === 'right' ? 'text-right ml-auto' : 'text-center mx-auto'
+            }`}
+            style={heroContentPadding}
+          >
             {/* Logo - use props.logoUrl or default, with scale control */}
             <div className="mb-8">
               <img 
@@ -194,6 +269,8 @@ export function BlockRenderer({ block, isEditing }: BlockRendererProps) {
           </div>
         </div>
       )
+      // Hero handles its own spacing internally, so return directly without external wrapper
+      return heroContent
 
     // ============================================
     // TEXT / CONTENT BLOCKS
@@ -418,19 +495,56 @@ export function BlockRenderer({ block, isEditing }: BlockRendererProps) {
       const isYouTube = vidUrl.includes('youtube.com') || vidUrl.includes('youtu.be')
       const isVimeo = vidUrl.includes('vimeo.com')
       
+      // Size settings
+      const videoSize = props.size || 'large'
+      const videoMaxWidth: Record<string, string> = {
+        small: '400px',
+        medium: '600px',
+        large: '800px',
+        xlarge: '1000px',
+        full: '100%'
+      }
+      
+      // Aspect ratio settings
+      const aspectRatio = props.aspectRatio || '16:9'
+      const videoAspectClass: Record<string, string> = {
+        '16:9': 'aspect-video',
+        '4:3': 'aspect-[4/3]',
+        '1:1': 'aspect-square',
+        '9:16': 'aspect-[9/16]',
+        '21:9': 'aspect-[21/9]',
+        'auto': ''
+      }
+      
+      // Alignment settings
+      const videoAlignment = props.alignment || 'center'
+      const videoAlignClass: Record<string, string> = {
+        left: 'mr-auto',
+        center: 'mx-auto',
+        right: 'ml-auto'
+      }
+      
+      // Playback settings
+      const videoAutoplay = props.autoplay ?? false
+      const videoLoop = props.loop ?? false
+      const videoShowControls = props.showControls ?? true
+      
       // Convert YouTube/Vimeo URLs to embed format
       const getEmbedUrl = (url: string) => {
+        const autoplayParam = videoAutoplay ? '&autoplay=1&mute=1' : ''
+        const loopParam = videoLoop ? '&loop=1' : ''
+        
         if (url.includes('youtube.com/watch')) {
           const videoId = url.split('v=')[1]?.split('&')[0]
-          return `https://www.youtube.com/embed/${videoId}?autoplay=0`
+          return `https://www.youtube.com/embed/${videoId}?rel=0${autoplayParam}${loopParam}`
         }
         if (url.includes('youtu.be/')) {
           const videoId = url.split('youtu.be/')[1]?.split('?')[0]
-          return `https://www.youtube.com/embed/${videoId}?autoplay=0`
+          return `https://www.youtube.com/embed/${videoId}?rel=0${autoplayParam}${loopParam}`
         }
         if (url.includes('vimeo.com/')) {
           const videoId = url.split('vimeo.com/')[1]?.split('?')[0]
-          return `https://player.vimeo.com/video/${videoId}`
+          return `https://player.vimeo.com/video/${videoId}?${videoAutoplay ? 'autoplay=1&muted=1' : ''}${videoLoop ? '&loop=1' : ''}`
         }
         return url
       }
@@ -440,41 +554,55 @@ export function BlockRenderer({ block, isEditing }: BlockRendererProps) {
           className={`py-12 ${wrapperClass}`}
           style={{ background: getBackground(styling) }}
         >
-          <div className="max-w-4xl mx-auto px-6">
-          <div className="relative aspect-video bg-[#1a1a1a] border-4 border-[#353535] overflow-hidden">
-            {vidUrl ? (
-              isYouTube || isVimeo ? (
-                <iframe
-                  src={getEmbedUrl(vidUrl)}
-                  className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
+          <div className="px-6" style={{ maxWidth: videoSize === 'full' ? '100%' : 'calc(100% - 48px)' }}>
+            <div 
+              className={`relative ${videoAspectClass[aspectRatio] || 'aspect-video'} bg-[#1a1a1a] border-4 border-[#353535] overflow-hidden ${videoAlignClass[videoAlignment]}`}
+              style={{ 
+                maxWidth: videoMaxWidth[videoSize],
+                width: '100%'
+              }}
+            >
+              {vidUrl ? (
+                isYouTube || isVimeo ? (
+                  <iframe
+                    src={getEmbedUrl(vidUrl)}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <video 
+                    src={vidUrl}
+                    className="w-full h-full object-cover"
+                    controls={videoShowControls}
+                    autoPlay={videoAutoplay && !isEditing}
+                    muted={videoAutoplay}
+                    loop={videoLoop}
+                    playsInline
+                  />
+                )
               ) : (
-                <video 
-                  src={vidUrl}
-                  className="w-full h-full object-cover"
-                  controls
-                  autoPlay={!isEditing}
-                  muted
-                  loop
-                  playsInline
-                />
-              )
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-[#CCAA4C] flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl">▶</span>
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-16 h-16 rounded-full bg-[#CCAA4C] flex items-center justify-center mx-auto mb-4">
+                      <span className="text-3xl">▶</span>
+                    </div>
+                    <span className="text-[#666] font-bold uppercase">Add Video URL</span>
                   </div>
-                  <span className="text-[#666] font-bold uppercase">Add Video URL</span>
                 </div>
-              </div>
+              )}
+            </div>
+            {props.caption && (
+              <p 
+                className={`mt-4 text-[#888] text-sm ${videoAlignClass[videoAlignment]}`}
+                style={{ 
+                  maxWidth: videoMaxWidth[videoSize],
+                  textAlign: videoAlignment as any 
+                }}
+              >
+                {props.caption}
+              </p>
             )}
-          </div>
-          {props.caption && (
-            <p className="mt-4 text-center text-[#888] text-sm">{props.caption}</p>
-          )}
           </div>
         </div>
       )
@@ -987,32 +1115,48 @@ export function BlockRenderer({ block, isEditing }: BlockRendererProps) {
             <div className="max-w-[1200px] mx-auto px-6">
               {/* Category grid - matching homepage 6-column layout (NO heading on actual homepage) */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-                {categories.map((cat: any, i: number) => (
-                  <div 
-                    key={cat.id || i} 
-                    className="bg-[#1f1c13] p-6 text-center hover:scale-105 transition-all group cursor-pointer"
-                  >
-                    <div className="w-32 h-32 mx-auto mb-4">
-                      {cat.imageUrl ? (
-                      <img 
-                        src={cat.imageUrl} 
-                        alt={cat.label} 
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-5xl opacity-50">
-                        {cat.icon || '📁'}
+                {categories.map((cat: any, i: number) => {
+                  const content = (
+                    <>
+                      <div className="w-32 h-32 mx-auto mb-4">
+                        {cat.imageUrl ? (
+                          <img 
+                            src={cat.imageUrl} 
+                            alt={cat.label} 
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-5xl opacity-50">
+                            {cat.icon || '📁'}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <span 
-                    className="text-lg font-black uppercase tracking-tight text-[#CCAA4C]"
-                    style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
-                  >
-                    {cat.label}
-                  </span>
-                </div>
-              ))}
+                      <span 
+                        className="text-lg font-black uppercase tracking-tight text-[#CCAA4C]"
+                        style={{ fontFamily: 'var(--font-oswald), sans-serif' }}
+                      >
+                        {cat.label}
+                      </span>
+                    </>
+                  );
+
+                  return cat.link ? (
+                    <Link
+                      key={cat.id || i}
+                      href={cat.link}
+                      className="bg-[#1f1c13] p-6 text-center hover:scale-105 transition-all group block"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div 
+                      key={cat.id || i} 
+                      className="bg-[#1f1c13] p-6 text-center hover:scale-105 transition-all group"
+                    >
+                      {content}
+                    </div>
+                  );
+                })}
             </div>
           </div>
         </div>
@@ -1732,4 +1876,8 @@ export function BlockRenderer({ block, isEditing }: BlockRendererProps) {
         </div>
       )
   }
+  } // end renderContent
+  
+  // Wrap content with spacing if needed
+  return wrapWithSpacing(renderContent())
 }

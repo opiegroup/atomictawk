@@ -342,6 +342,8 @@ export interface BlockStyling {
   // Spacing
   paddingTop?: 'none' | 'small' | 'medium' | 'large' | 'xlarge'
   paddingBottom?: 'none' | 'small' | 'medium' | 'large' | 'xlarge'
+  marginTop?: 'none' | 'small' | 'medium' | 'large' | 'xlarge'
+  marginBottom?: 'none' | 'small' | 'medium' | 'large' | 'xlarge'
   
   // Colors
   accentColor?: string

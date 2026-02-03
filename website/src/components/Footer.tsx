@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Radio, Share2, Podcast, Wrench, Youtube, Instagram, Twitter } from "lucide-react";
 import { getSiteSettings, getSocialLinks, SiteSettings, SocialLink, defaultSiteSettings, defaultSocialLinks } from "@/lib/siteSettings";
+import { NewsletterForm } from "./NewsletterForm";
 
 const footerLinks = {
   frequencies: [
@@ -168,20 +169,12 @@ export async function Footer({ settings: propSettings, socialLinks: propSocialLi
               <p className="text-[10px] text-white/90 font-mono uppercase mb-4">
                 {settings?.newsletter_description || "Stay informed. Join the newsletter for weekly mechanical updates and shed tips."}
               </p>
-              <form className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="email"
-                  placeholder="YOUR EMAIL..."
-                  className="flex-grow bg-white/10 border-2 border-white/20 text-xs font-bold uppercase px-4 py-3 focus:ring-[#CCAA4C] focus:border-[#CCAA4C] placeholder:text-white/30"
-                />
-                <button
-                  type="submit"
-                  className="bg-[#CCAA4C] text-[#353535] px-6 py-3 font-black uppercase text-xs hover:bg-white transition-colors whitespace-nowrap"
-                  style={{ fontFamily: "var(--font-oswald), sans-serif" }}
-                >
-                  Subscribe
-                </button>
-              </form>
+              <NewsletterForm 
+                source="footer" 
+                variant="dark" 
+                buttonText="Subscribe"
+                successMessage="Welcome to the Atomic Tawk community!"
+              />
             </div>
           </div>
         </div>

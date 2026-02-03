@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { getSupabaseClient, useAuth } from '@/lib/supabase'
-import { User, Upload, MessageSquare, Calendar, Camera, Save } from 'lucide-react'
+import { User, Upload, MessageSquare, Calendar, Camera, Save, Award, Trophy } from 'lucide-react'
+import { BadgeGrid, Badge } from '@/components/badges'
 
 interface ActivityStats {
   uploads_count: number
@@ -17,6 +19,7 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [stats, setStats] = useState<ActivityStats | null>(null)
+  const [badges, setBadges] = useState<Badge[]>([])
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -31,6 +34,7 @@ export default function ProfilePage() {
       setDisplayName(profile.display_name || '')
       setAvatarUrl(profile.avatar_url || '')
       fetchStats()
+      fetchBadges()
     }
   }, [profile])
 
@@ -40,6 +44,15 @@ export default function ProfilePage() {
     const { data } = await (supabase.rpc as any)('get_user_activity_stats')
     if (data) {
       setStats(data as ActivityStats)
+    }
+  }
+
+  const fetchBadges = async () => {
+    const supabase = getSupabaseClient()
+    if (!supabase || !user) return
+    const { data } = await (supabase.rpc as any)('get_user_badges', { p_user_id: user.id })
+    if (data) {
+      setBadges(data as Badge[])
     }
   }
 
@@ -106,7 +119,7 @@ export default function ProfilePage() {
         <h1 className="text-3xl font-bold text-white mb-8">Your Profile</h1>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-4 gap-4 mb-8">
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 text-center">
             <Upload className="w-6 h-6 text-amber-500 mx-auto mb-2" />
             <p className="text-2xl font-bold text-white">{stats?.uploads_count || 0}</p>
@@ -118,6 +131,11 @@ export default function ProfilePage() {
             <p className="text-zinc-400 text-sm">Comments</p>
           </div>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 text-center">
+            <Award className="w-6 h-6 text-amber-500 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-white">{badges.length}</p>
+            <p className="text-zinc-400 text-sm">Badges</p>
+          </div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 text-center">
             <Calendar className="w-6 h-6 text-amber-500 mx-auto mb-2" />
             <p className="text-sm font-bold text-white">
               {stats?.last_active_at 
@@ -126,6 +144,23 @@ export default function ProfilePage() {
             </p>
             <p className="text-zinc-400 text-sm">Last Active</p>
           </div>
+        </div>
+
+        {/* Badges Section */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              <h2 className="text-lg font-bold text-white">Honour Badges</h2>
+            </div>
+            <Link 
+              href="/community/wall-of-honour" 
+              className="text-xs text-amber-500 hover:underline"
+            >
+              View Wall of Honour →
+            </Link>
+          </div>
+          <BadgeGrid badges={badges} emptyMessage="Start commenting to earn your first badge!" />
         </div>
 
         {/* Profile Form */}

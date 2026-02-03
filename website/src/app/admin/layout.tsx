@@ -16,7 +16,9 @@ import {
   Target,
   Shield,
   ClipboardList,
-  Menu
+  Menu,
+  Image,
+  Award
 } from "lucide-react";
 import { useAuth, useRole } from "@/lib/supabase";
 import { useEffect } from "react";
@@ -29,6 +31,8 @@ const navItems = [
   { href: "/admin/content", label: "Content", icon: FileText, roles: ["god", "admin"] },
   { href: "/admin/comments", label: "Comments", icon: MessageSquare, roles: ["god", "admin"] },
   { href: "/admin/products", label: "Products", icon: ShoppingBag, roles: ["god", "admin"] },
+  { href: "/admin/media", label: "Media Library", icon: Image, roles: ["god", "admin"] },
+  { href: "/admin/badges", label: "Honour Badges", icon: Award, roles: ["god", "admin"] },
   { href: "/admin/community", label: "Community", icon: MessageSquare, roles: ["god", "admin"] },
   { href: "/admin/leads", label: "Leads", icon: Target, roles: ["god", "sales"] },
   { href: "/admin/users", label: "Users", icon: Users, roles: ["god", "admin"] },

@@ -251,7 +251,8 @@ export default async function ContentPage({
           </div>
         ) : content.thumbnail_url ? (
           <div className="mb-8">
-            <div className="relative aspect-[21/9] bg-[#353535] border-4 border-[#353535] overflow-hidden">
+            {/* Taller aspect ratio (16:9) for less cropping - was 21:9 */}
+            <div className="relative aspect-video bg-[#353535] border-4 border-[#353535] overflow-hidden">
               <Image
                 src={content.thumbnail_url}
                 alt={content.title}

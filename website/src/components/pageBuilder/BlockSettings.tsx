@@ -2012,13 +2012,54 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
               placeholder="Video caption..."
             />
             <SelectField
-              label="Layout"
-              value={block.props.layout || 'single'}
+              label="Size"
+              value={block.props.size || 'large'}
               options={[
-                { value: 'single', label: 'Single' },
-                { value: 'fullWidth', label: 'Full Width' },
+                { value: 'small', label: 'Small (400px)' },
+                { value: 'medium', label: 'Medium (600px)' },
+                { value: 'large', label: 'Large (800px)' },
+                { value: 'xlarge', label: 'Extra Large (1000px)' },
+                { value: 'full', label: 'Full Width' },
               ]}
-              onChange={(v) => updateProp('layout', v)}
+              onChange={(v) => updateProp('size', v)}
+            />
+            <SelectField
+              label="Aspect Ratio"
+              value={block.props.aspectRatio || '16:9'}
+              options={[
+                { value: '16:9', label: '16:9 (Widescreen)' },
+                { value: '4:3', label: '4:3 (Standard)' },
+                { value: '1:1', label: '1:1 (Square)' },
+                { value: '9:16', label: '9:16 (Vertical)' },
+                { value: '21:9', label: '21:9 (Cinematic)' },
+                { value: 'auto', label: 'Auto (Native)' },
+              ]}
+              onChange={(v) => updateProp('aspectRatio', v)}
+            />
+            <SelectField
+              label="Alignment"
+              value={block.props.alignment || 'center'}
+              options={[
+                { value: 'left', label: 'Left' },
+                { value: 'center', label: 'Center' },
+                { value: 'right', label: 'Right' },
+              ]}
+              onChange={(v) => updateProp('alignment', v)}
+            />
+            <ToggleField
+              label="Autoplay (muted)"
+              value={block.props.autoplay ?? false}
+              onChange={(v) => updateProp('autoplay', v)}
+            />
+            <ToggleField
+              label="Loop"
+              value={block.props.loop ?? false}
+              onChange={(v) => updateProp('loop', v)}
+            />
+            <ToggleField
+              label="Show Controls"
+              value={block.props.showControls ?? true}
+              onChange={(v) => updateProp('showControls', v)}
             />
           </>
         )
@@ -2776,31 +2817,78 @@ export function BlockSettings({ block, onUpdate, onDelete, onDuplicate }: BlockS
           ]}
           onChange={(v) => updateStyling('borderRadius', v)}
         />
-        <div className="grid grid-cols-2 gap-2">
-          <SelectField
-            label="Padding Top"
-            value={block.styling?.paddingTop || 'medium'}
-            options={[
-              { value: 'none', label: 'None' },
-              { value: 'small', label: 'Small' },
-              { value: 'medium', label: 'Medium' },
-              { value: 'large', label: 'Large' },
-              { value: 'xlarge', label: 'X-Large' },
-            ]}
-            onChange={(v) => updateStyling('paddingTop', v)}
-          />
-          <SelectField
-            label="Padding Bottom"
-            value={block.styling?.paddingBottom || 'medium'}
-            options={[
-              { value: 'none', label: 'None' },
-              { value: 'small', label: 'Small' },
-              { value: 'medium', label: 'Medium' },
-              { value: 'large', label: 'Large' },
-              { value: 'xlarge', label: 'X-Large' },
-            ]}
-            onChange={(v) => updateStyling('paddingBottom', v)}
-          />
+      </CollapsibleSection>
+
+      {/* Spacing - Dedicated section for margin/padding */}
+      <CollapsibleSection title="Spacing" icon={Move} defaultOpen={true}>
+        <p className="text-[10px] text-[#666] mb-3">
+          Control space inside (padding) and outside (margin) this block
+        </p>
+        
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[10px] text-[#CCAA4C] uppercase tracking-wider mb-2 font-bold">
+              Margin (Outside Space)
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <SelectField
+                label="Top"
+                value={block.styling?.marginTop || 'none'}
+                options={[
+                  { value: 'none', label: 'None' },
+                  { value: 'small', label: 'Small (8px)' },
+                  { value: 'medium', label: 'Medium (16px)' },
+                  { value: 'large', label: 'Large (32px)' },
+                  { value: 'xlarge', label: 'X-Large (64px)' },
+                ]}
+                onChange={(v) => updateStyling('marginTop', v)}
+              />
+              <SelectField
+                label="Bottom"
+                value={block.styling?.marginBottom || 'none'}
+                options={[
+                  { value: 'none', label: 'None' },
+                  { value: 'small', label: 'Small (8px)' },
+                  { value: 'medium', label: 'Medium (16px)' },
+                  { value: 'large', label: 'Large (32px)' },
+                  { value: 'xlarge', label: 'X-Large (64px)' },
+                ]}
+                onChange={(v) => updateStyling('marginBottom', v)}
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-[10px] text-[#CCAA4C] uppercase tracking-wider mb-2 font-bold">
+              Padding (Inside Space)
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <SelectField
+                label="Top"
+                value={block.styling?.paddingTop || 'medium'}
+                options={[
+                  { value: 'none', label: 'None' },
+                  { value: 'small', label: 'Small' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'large', label: 'Large' },
+                  { value: 'xlarge', label: 'X-Large' },
+                ]}
+                onChange={(v) => updateStyling('paddingTop', v)}
+              />
+              <SelectField
+                label="Bottom"
+                value={block.styling?.paddingBottom || 'medium'}
+                options={[
+                  { value: 'none', label: 'None' },
+                  { value: 'small', label: 'Small' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'large', label: 'Large' },
+                  { value: 'xlarge', label: 'X-Large' },
+                ]}
+                onChange={(v) => updateStyling('paddingBottom', v)}
+              />
+            </div>
+          </div>
         </div>
       </CollapsibleSection>
 
